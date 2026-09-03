@@ -1,0 +1,24 @@
+[Unit]
+Description=Brimstone BulkMail queue worker
+After=network-online.target postfix.service
+Wants=network-online.target
+Requires=postfix.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+SupplementaryGroups=postdrop
+
+EnvironmentFile=-/etc/on-prem-bulkmail.conf
+
+ExecStart=/usr/bin/php /usr/local/sbin/bulkmail-worker.php
+
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
