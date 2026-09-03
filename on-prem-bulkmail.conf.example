@@ -1,0 +1,4 @@
+# Brimstone On-Prem BulkMail runtime configuration
+
+BULKMAIL_PUBLIC_BASE=http://bulkmail.example.invalid/
+BULKMAIL_MESSAGE_DOMAIN=bulkmail.example.invalid
