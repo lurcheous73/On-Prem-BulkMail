@@ -149,6 +149,16 @@ echo "=== APPLICATION ==="
 install -d -o root -g root -m 0755 "$APP_DIR"
 cp -a "$SCRIPT_DIR/app/." "$APP_DIR/"
 
+if [ ! -f "$APP_DIR/index.php" ] && [ -f "$SCRIPT_DIR/app/index.php.gz" ]; then
+    gzip -dc "$SCRIPT_DIR/app/index.php.gz" > "$APP_DIR/index.php"
+    rm -f "$APP_DIR/index.php.gz"
+fi
+
+if [ ! -f "$APP_DIR/index.php" ]; then
+    echo "ERROR: application entry point index.php is missing."
+    exit 21
+fi
+
 find "$APP_DIR" -type d -exec chmod 0755 {} \;
 find "$APP_DIR" -type f -exec chmod 0644 {} \;
 
