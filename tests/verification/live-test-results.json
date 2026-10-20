@@ -1,0 +1,26 @@
+{
+  "passed": [
+    "Production source still matches inspected baseline",
+    "Live script equals the tested candidate",
+    "Live PHP/FPM page loads: home",
+    "Live PHP/FPM page loads: contacts",
+    "Live PHP/FPM page loads: groups",
+    "Live PHP/FPM page loads: templates",
+    "Live PHP/FPM page loads: drafts",
+    "Live PHP/FPM page loads: history",
+    "existing-contact contact edit loads with original details",
+    "Live existing-contact duplicate edit returns useful error with no SQLSTATE",
+    "Live rejected edit preserves every production data table",
+    "Live database integrity and references pass",
+    "All other live application files unchanged",
+    "Public HTTPS login responds correctly",
+    "Service active: nginx",
+    "Service active: php8.2-fpm",
+    "Service active: postfix",
+    "Service active: bulkmail-worker",
+    "Outbound Postfix queue is empty"
+  ],
+  "count": 19,
+  "production_data_unchanged": true,
+  "customer_emails_sent": 0
+}

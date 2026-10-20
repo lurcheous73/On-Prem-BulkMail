@@ -1,0 +1,9 @@
+[Unit]
+Description=File Grange bulk mail campaigns into sender IMAP Sent once
+After=pve-container.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/sbin/grange-bulkmail-sent-sync.py
+TimeoutStartSec=180
+UMask=0077

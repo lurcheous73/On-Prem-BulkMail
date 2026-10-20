@@ -3,14 +3,7 @@
 declare(strict_types=1);
 
 const DB_FILE = '/var/lib/bulkmail/bulkmail.sqlite';
-define(
-    'PUBLIC_BASE',
-    rtrim(
-        getenv('BULKMAIL_PUBLIC_BASE')
-        ?: 'http://localhost/',
-        '/'
-    ) . '/'
-);
+const PUBLIC_BASE = 'https://bulk.the-grange.uk/';
 
 function open_db(): PDO {
     $db = new PDO('sqlite:' . DB_FILE, null, null, [
@@ -75,7 +68,7 @@ function build_message(PDO $db, array $mailing, array $recipient): string {
         : $to;
 
     $messageId = sprintf(
-        '<bulk-%d-%d-%s@' . (getenv('BULKMAIL_MESSAGE_DOMAIN') ?: 'localhost') . '>',
+        '<bulk-%d-%d-%s@bulk.the-grange.uk>',
         (int)$mailing['id'],
         (int)$recipient['id'],
         bin2hex(random_bytes(6))
@@ -90,6 +83,9 @@ function build_message(PDO $db, array $mailing, array $recipient): string {
     }
 
     $plain = text_from_html($body);
+    // Locally hosted web fonts; email programs without support retain inline fallback stacks.
+    $fontCss='/var/www/bulkmail/bulkmail-fonts-email.css';
+    if(is_file($fontCss) && preg_match('/Dancing Script|Lato|Merriweather|Montserrat|Open Sans/i',$body))$body='<html><head><style>'.file_get_contents($fontCss).'</style></head><body>'.$body.'</body></html>';
 
     $assetStmt = $db->prepare(
         'SELECT * FROM mailing_assets WHERE mailing_id=? ORDER BY page_number,id'
@@ -103,6 +99,12 @@ function build_message(PDO $db, array $mailing, array $recipient): string {
     $attStmt->execute([(int)$mailing['id']]);
     $attachments = $attStmt->fetchAll();
 
+    $recipientAttStmt = $db->prepare(
+        'SELECT * FROM mailing_recipient_attachments WHERE mailing_recipient_id=? ORDER BY id'
+    );
+    $recipientAttStmt->execute([(int)$recipient['id']]);
+    $attachments = array_merge($attachments, $recipientAttStmt->fetchAll());
+
     $mixed   = '=_mixed_' . bin2hex(random_bytes(12));
     $alt     = '=_alt_' . bin2hex(random_bytes(12));
     $related = '=_rel_' . bin2hex(random_bytes(12));
@@ -114,7 +116,7 @@ function build_message(PDO $db, array $mailing, array $recipient): string {
     $headers[] = 'Date: ' . date(DATE_RFC2822);
     $headers[] = 'Message-ID: ' . $messageId;
     $headers[] = 'MIME-Version: 1.0';
-    $headers[] = 'X-Bulk-Mailer: Brimstone On-Prem BulkMail v2.1.2';
+    $headers[] = 'X-Bulk-Mailer: The Grange Bulk Mail v2.1.3';
 
     if (str_contains((string)$mailing['body_html'], '{{UNSUBSCRIBE_URL}}')) {
         $token = (string)($recipient['unsubscribe_token'] ?? '');
@@ -216,6 +218,8 @@ function submit_message(string $from, string $to, string $message): array {
 
     return [$code, trim($stdout . "\n" . $stderr)];
 }
+
+if (defined('BULKMAIL_LIBRARY_ONLY') && BULKMAIL_LIBRARY_ONLY) return;
 
 while (true) {
     // Re-open SQLite for every polling cycle.

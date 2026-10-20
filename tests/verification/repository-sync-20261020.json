@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-20",
+  "scope": "Repository source reconciliation; no production deployment",
+  "isolated_contact_checks": 31,
+  "isolated_full_mailer_checks": 40,
+  "installer_existing_database_guard": "passed; exits 22 before mutations",
+  "schema_only_restore": "passed",
+  "font_asset_hashes": "passed",
+  "private_cli_layout": "passed",
+  "php_syntax": "8 files passed",
+  "shell_syntax": "passed",
+  "javascript_syntax": "passed",
+  "no_delivery_worker": true,
+  "no_customer_emails_sent": true
+}

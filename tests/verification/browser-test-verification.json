@@ -1,0 +1,7 @@
+{
+  "device": "Mac.home.brimstonecottage.uk",
+  "results_file": "/tmp/grange-full-drafts-20261016/browser-results.json",
+  "passed_checks": 13,
+  "requests_to_live_mailer_during_tests": 0,
+  "production_https_assets_match_tested_assets": true
+}

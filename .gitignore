@@ -18,3 +18,10 @@ runtime/
 *.pem
 
 on-prem-bulkmail.conf
+
+__pycache__/
+*.pyc
+qa-auth.json
+qa-http.log
+qa/
+compose-files/

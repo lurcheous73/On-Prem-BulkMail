@@ -1,0 +1,42 @@
+{
+  "aee750c2bad66450c522.woff2": {
+    "source": "https://fonts.gstatic.com/s/dancingscript/v29/If2RXTr6YS-zF4S-kcSWSVi_szLgiuE.woff2",
+    "sha256": "51acdc0e009e1d84cca6b654c4218275d8ee33dd243f3df25f7412a824a78d99"
+  },
+  "b7146d7fa8e37d1df4b6.woff2": {
+    "source": "https://fonts.gstatic.com/s/lato/v25/S6u8w4BMUTPHjxsAXC-q.woff2",
+    "sha256": "bca1d88ada544d9c80872d4da27133fab6d347361fa26e932b47ec9559088fd0"
+  },
+  "14cbedebefa71c744467.woff2": {
+    "source": "https://fonts.gstatic.com/s/lato/v25/S6uyw4BMUTPHjx4wXg.woff2",
+    "sha256": "918b7dc3e2e2d015c16ce08b57bcb64d2253bafc1707658f361e72865498e537"
+  },
+  "d19d4900858a98b562e8.woff2": {
+    "source": "https://fonts.gstatic.com/s/lato/v25/S6u9w4BMUTPHh6UVSwiPGQ.woff2",
+    "sha256": "c447dd7677b419db7b21dbdfc6277c7816a913ffda76fd2e52702df538de0e49"
+  },
+  "81469aad610d45ee0f80.woff2": {
+    "source": "https://fonts.gstatic.com/s/merriweather/v33/u-4B0qyriQwlOrhSvowK_l5-eTxCVx0ZbwLvKH2Gk9hLmp0v5yA-xXPqCzLvPee1XYk_XSf-FmTCUG33AvE.woff2",
+    "sha256": "051559ee0644cd647c8f654cffea1d1a5ce601e573af21d0984528563fb476f6"
+  },
+  "d84f05e79770e1d4da4a.woff2": {
+    "source": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-k.woff2",
+    "sha256": "4fbe8dd9c23b1fd62a988bb8a69b8e692d810f773d9ef6ebca2ba2760c7b11ee"
+  },
+  "d946ecc5af7b794f16c8.woff2": {
+    "source": "https://fonts.gstatic.com/s/montserrat/v31/JTUFjIg1_i6t8kCHKm459Wx7xQYXK0vOoz6jq6R9WXh0pg.woff2",
+    "sha256": "a18fca2f8a465eaa5cb0a7431cbcb5ecdc7eb06ac751684eba790ab84d21aadc"
+  },
+  "3dac51d0c0ab812ae36e.woff2": {
+    "source": "https://fonts.gstatic.com/s/montserrat/v31/JTUSjIg1_i6t8kCHKm459Wlhyw.woff2",
+    "sha256": "06b16db7a969135d48d38c49183be7fb88d4452e2a3011957c7851941f4e4879"
+  },
+  "3a41f8b6c92b3711ebe9.woff2": {
+    "source": "https://fonts.gstatic.com/s/opensans/v44/memQYaGs126MiZpBA-UFUIcVXSCEkx2cmqvXlWq8tWZ0Pw86hd0Rk8ZkWVAewA.woff2",
+    "sha256": "3b50909a098195a8a3fda73fe29c260724e6f9ca624dd750cb8af7cb0c9198e2"
+  },
+  "b877d76363543389ea06.woff2": {
+    "source": "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2",
+    "sha256": "d8e4fe0452aa2076429a9bb5d8757d00a994dd95986cf950e9a1a371b9a072a0"
+  }
+}

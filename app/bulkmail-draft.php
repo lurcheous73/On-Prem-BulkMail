@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /*
- * Brimstone On-Prem BulkMail
+ * The Grange Bulk Mail
  * Persistent compose draft support
  */
 
@@ -30,6 +30,7 @@ function bulkmail_ensure_draft_table(PDO $db): void
 function bulkmail_clear_compose_draft(PDO $db, int $userId, int $actingFor): void
 {
     bulkmail_ensure_draft_table($db);
+    bulkmail_archive_draft($db,$userId,$actingFor,'Before clearing');
 
     $s = $db->prepare(
         'DELETE FROM compose_drafts
@@ -98,6 +99,8 @@ function bulkmail_handle_draft_api(PDO $db, string $page): void
     }
 
     check_csrf();
+    bm_check_workspace($db,$userId,$actingFor);
+    bulkmail_archive_draft($db,$userId,$actingFor,'Before autosave');
 
     $groups = json_decode((string)($_POST['groups'] ?? '[]'), true);
     $contacts = json_decode((string)($_POST['contacts'] ?? '[]'), true);
@@ -152,12 +155,13 @@ function bulkmail_handle_draft_api(PDO $db, string $page): void
         $senderId,
         trim((string)($_POST['custom_from'] ?? '')),
         trim((string)($_POST['subject'] ?? '')),
-        (string)($_POST['body_html'] ?? ''),
+        sanitize_html((string)($_POST['body_html'] ?? '')),
         !empty($_POST['all_contacts']) ? 1 : 0,
         json_encode($groups),
         json_encode($contacts),
     ]);
 
+    bulkmail_archive_draft($db,$userId,$actingFor,'Autosaved');
     echo json_encode([
         'ok' => true,
         'saved_at' => gmdate('Y-m-d H:i:s'),

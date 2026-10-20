@@ -22,6 +22,12 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+if [ -e "$DB" ]; then
+    echo "ERROR: a database already exists at $DB."
+    echo "This script is for a fresh installation. See docs/DEPLOYMENT.md for upgrades."
+    exit 22
+fi
+
 echo "============================================================"
 echo " ON-PREM BULKMAIL INSTALLER"
 echo "============================================================"
@@ -121,6 +127,9 @@ apt-get install -y \
     php-gd \
     poppler-utils \
     imagemagick \
+    libreoffice-writer \
+    hunspell \
+    hunspell-en-gb \
     ca-certificates \
     curl
 
@@ -148,6 +157,8 @@ echo "=== APPLICATION ==="
 
 install -d -o root -g root -m 0755 "$APP_DIR"
 cp -a "$SCRIPT_DIR/app/." "$APP_DIR/"
+# Private CLI tools never belong under the webroot.
+rm -f "$APP_DIR/bulkmail-worker.php" "$APP_DIR/bulkmail-sent-export.php"
 
 if [ ! -f "$APP_DIR/index.php" ] && [ -f "$SCRIPT_DIR/app/index.php.gz" ]; then
     gzip -dc "$SCRIPT_DIR/app/index.php.gz" > "$APP_DIR/index.php"
@@ -178,14 +189,6 @@ done
 
 echo
 echo "=== DATABASE ==="
-
-if [ -e "$DB" ]; then
-    cp -a \
-        "$DB" \
-        "${DB}.pre-install-$(date +%Y%m%d-%H%M%S)"
-fi
-
-rm -f "$DB"
 
 sqlite3 "$DB" < "$SCRIPT_DIR/database/schema.sql"
 
@@ -276,6 +279,8 @@ printf '%s\n' \
 chmod 0644 "$CONFIG"
 
 echo
+install -o root -g root -m 0755 "$SCRIPT_DIR/worker/bulkmail-sent-export.php" /usr/local/sbin/bulkmail-sent-export.php
+
 echo "=== NGINX ==="
 
 sed \

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check completed Grange bulk mailings for missing Sent-folder copies
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=grange-bulkmail-sent.service
+
+[Install]
+WantedBy=timers.target
