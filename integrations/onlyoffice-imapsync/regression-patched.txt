@@ -35,4 +35,19 @@ PASS a consumed deferred marker prevents a redundant readiness retry
 PASS filtering all pending drafts as already sent invokes no restore callback
 PASS a known empty own Sent list allows legitimate draft recovery
 PASS recovery fixture executes no IMAP tasks
-Checks 37; failures 0; network operations 0; IMAP tasks started 0
+PASS the real shared-engine lock helpers are available
+PASS a real engine operation entered its guarded callback
+PASS folder initialization holds the shared engine permit
+PASS another operation cannot enter while folder initialization owns the context
+PASS successful folder initialization releases exactly its own permit
+PASS a failing engine operation retains its original exception
+PASS a failing engine operation still releases exactly one permit
+PASS reconciliation retains exclusive context ownership through recalculation
+PASS completing a folder update retains the normal user-update signal
+PASS successful recalculation releases the existing reconciliation permit
+PASS recalculation failure is preserved for the existing caller handling
+PASS recalculation failure cannot strand the shared semaphore
+PASS creation failure before Wait cannot release another callback's permit
+PASS deletion failure before Wait cannot release another callback's permit
+PASS deletion failure after Wait releases its own permit
+Checks 52; failures 0; network operations 0; IMAP tasks started 0

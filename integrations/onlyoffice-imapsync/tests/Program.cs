@@ -193,6 +193,100 @@ internal static class Program
         Check(Tasks(ownDraft).IsEmpty && Tasks(otherDraft).IsEmpty, "recovery fixture executes no IMAP tasks");
     }
 
+    private static async Task EngineLockFlow()
+    {
+        var withLock = typeof(MailImapClient).GetMethod("WithEngineLock", All);
+        var complete = typeof(MailImapClient).GetMethod("CompleteFolderUpdate", All);
+        Check(withLock != null && complete != null, "the real shared-engine lock helpers are available");
+        if (withLock == null || complete == null) return;
+        var dispatcher = (MailImapClient)RuntimeHelpers.GetUninitializedObject(typeof(MailImapClient));
+        using var semaphore = new SemaphoreSlim(1, 1);
+        Field(dispatcher, "_enginesFactorySemaphore", semaphore);
+        using var entered = new ManualResetEventSlim();
+        using var finish = new ManualResetEventSlim();
+        bool ownedDuringAction = false;
+        var operation = Task.Run(() => withLock.Invoke(dispatcher, new object[] { (Action)(() =>
+        {
+            ownedDuringAction = semaphore.CurrentCount == 0;
+            entered.Set();
+            if (!finish.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException("Fixture release was not signalled");
+        }) }));
+        try
+        {
+            Check(entered.Wait(TimeSpan.FromSeconds(5)), "a real engine operation entered its guarded callback");
+            Check(ownedDuringAction, "folder initialization holds the shared engine permit");
+            bool overlappingEntry = semaphore.Wait(0);
+            if (overlappingEntry) semaphore.Release();
+            Check(!overlappingEntry, "another operation cannot enter while folder initialization owns the context");
+        }
+        finally
+        {
+            finish.Set();
+            await operation.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        Check(semaphore.CurrentCount == 1, "successful folder initialization releases exactly its own permit");
+
+        var failure = new InvalidOperationException("fixture engine failure");
+        bool sameFailure = false;
+        try { withLock.Invoke(dispatcher, new object[] { (Action)(() => throw failure) }); }
+        catch (TargetInvocationException ex) { sameFailure = ReferenceEquals(ex.InnerException, failure); }
+        Check(sameFailure, "a failing engine operation retains its original exception");
+        Check(semaphore.CurrentCount == 1, "a failing engine operation still releases exactly one permit");
+
+        semaphore.Wait();
+        bool recalcOwned = false, recalcBlockedOther = false;
+        complete.Invoke(dispatcher, new object[] { (Action)(() =>
+        {
+            recalcOwned = semaphore.CurrentCount == 0;
+            bool entry = semaphore.Wait(0);
+            recalcBlockedOther = !entry;
+            if (entry) semaphore.Release();
+        }) });
+        Check(recalcOwned && recalcBlockedOther, "reconciliation retains exclusive context ownership through recalculation");
+        Check((bool)typeof(MailImapClient).GetField("needUserUpdate", All).GetValue(dispatcher),
+            "completing a folder update retains the normal user-update signal");
+        Check(semaphore.CurrentCount == 1, "successful recalculation releases the existing reconciliation permit");
+
+        semaphore.Wait();
+        sameFailure = false;
+        try { complete.Invoke(dispatcher, new object[] { (Action)(() => throw failure) }); }
+        catch (TargetInvocationException ex) { sameFailure = ReferenceEquals(ex.InnerException, failure); }
+        Check(sameFailure, "recalculation failure is preserved for the existing caller handling");
+        Check(semaphore.CurrentCount == 1, "recalculation failure cannot strand the shared semaphore");
+    }
+
+    private static void EnginePermitOwnership()
+    {
+        var dispatcher = (MailImapClient)RuntimeHelpers.GetUninitializedObject(typeof(MailImapClient));
+        using var semaphore = new SemaphoreSlim(1, 1);
+        Field(dispatcher, "_enginesFactorySemaphore", semaphore);
+        Field(dispatcher, "_log", NullLogger.Instance);
+        Field(dispatcher, "simpleImapClients", new List<SimpleImapClient>());
+        var account = (MailBoxData)RuntimeHelpers.GetUninitializedObject(typeof(MailBoxData));
+        account.MailBoxId = 22;
+        account.EMail = new System.Net.Mail.MailAddress("fixture@example.invalid");
+        var create = typeof(MailImapClient).GetMethod("CreateSimpleImapClients", All);
+        var delete = typeof(MailImapClient).GetMethod("DeleteSimpleImapClients", All);
+        semaphore.Wait();
+        // _cancelToken is deliberately null: argument evaluation fails before
+        // any SimpleImapClient is constructed or any transport can be reached.
+        create.Invoke(dispatcher, new object[] { account });
+        Check(semaphore.CurrentCount == 0, "creation failure before Wait cannot release another callback's permit");
+        if (semaphore.CurrentCount == 0) semaphore.Release();
+
+        Field(dispatcher, "simpleImapClients", new List<SimpleImapClient> { null });
+        semaphore.Wait();
+        // The malformed local fixture fails during selection, before Stop/Wait.
+        delete.Invoke(dispatcher, new object[] { account });
+        Check(semaphore.CurrentCount == 0, "deletion failure before Wait cannot release another callback's permit");
+        if (semaphore.CurrentCount == 0) semaphore.Release();
+
+        Field(dispatcher, "simpleImapClients", new List<SimpleImapClient>());
+        // No clients exist to stop; the null factory fails only after Wait.
+        delete.Invoke(dispatcher, new object[] { account });
+        Check(semaphore.CurrentCount == 1, "deletion failure after Wait releases its own permit");
+    }
+
     private static async Task<int> Main(string[] args)
     {
         var first = Client(21, FolderType.Draft, 801);
@@ -227,7 +321,12 @@ internal static class Program
         await Dispatch(new(), 901);
         Check(true, "no Draft clients is handled without a transport operation");
         RecoveryPredicate();
-        if (!args.Contains("--dispatch-only")) RecoveryFlow();
+        if (!args.Contains("--dispatch-only"))
+        {
+            RecoveryFlow();
+            await EngineLockFlow();
+            EnginePermitOwnership();
+        }
         Console.WriteLine($"Checks {checks}; failures {failures}; network operations 0; IMAP tasks started 0");
         return failures == 0 ? 0 : 1;
     }

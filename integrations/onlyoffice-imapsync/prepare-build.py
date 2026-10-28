@@ -8,7 +8,7 @@ import json
 import subprocess
 
 source = pathlib.Path('/tmp/onlyoffice-imapsync-hotfix-source')
-target = pathlib.Path('/tmp/onlyoffice-imapsync-service-build')
+target = pathlib.Path('/tmp/onlyoffice-imapsync-service-build-v3')
 manifest = json.loads(pathlib.Path(__file__).with_name('manifest.json').read_text())
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -18,6 +18,10 @@ source_name = 'Services/ASC.Mail.ImapSync.Service/MailImapClient.cs'
 original = subprocess.run(['git', 'show', head + ':' + source_name], cwd=source, capture_output=True, check=True).stdout
 assert digest(original) == manifest['original_source_sha256'], 'Original source does not match production'
 assert digest((source / source_name).read_bytes()) == manifest['patched_source_sha256'], 'Apply the reviewed source patch first'
+# Preserve the exact isolated source path used by the reviewed v3 build.
+staged_source = pathlib.Path('/tmp/onlyoffice-imapsync-hotfix-v3/MailImapClient.cs')
+staged_source.parent.mkdir(exist_ok=True)
+shutil.copyfile(source / source_name, staged_source)
 assert digest(pathlib.Path('/tmp/onlyoffice-mail-core.dll').read_bytes()) == manifest['unchanged_core_sha256'], 'Unsupported Core assembly'
 target.mkdir(exist_ok=True)
 project = ET.parse(source / 'Services/ASC.Mail.ImapSync.Service/ASC.Mail.ImapSync.Service.csproj')
@@ -37,7 +41,7 @@ for reference in root.iter('Reference'):
 group = ET.SubElement(root, 'ItemGroup')
 ET.SubElement(group, 'Compile', {
     'Include': str(source / 'Services/ASC.Mail.ImapSync.Service/**/*.cs'),
-    'Exclude': str(source / 'Services/ASC.Mail.ImapSync.Service/obj/**/*.cs') + ';' + str(source / 'Services/ASC.Mail.ImapSync.Service/bin/**/*.cs') + ';' + str(source / 'Services/ASC.Mail.ImapSync.Service/MailEnginesFactoryExtentions.cs')
+    'Exclude': str(source / 'Services/ASC.Mail.ImapSync.Service/obj/**/*.cs') + ';' + str(source / 'Services/ASC.Mail.ImapSync.Service/bin/**/*.cs') + ';' + str(source / 'Services/ASC.Mail.ImapSync.Service/MailEnginesFactoryExtentions.cs') + ';' + str(source / source_name)
 })
 # This service file has an unused OpenStack import. Strip only that import from
 # a build copy; its compiled methods do not reference OpenStack at all.
@@ -60,6 +64,7 @@ for name, version in [
     ('AutoMapper', '12.0.1'),
 ]:
     ET.SubElement(group, 'PackageReference', {'Include': name, 'Version': version})
+ET.SubElement(group, 'Compile', {'Include': str(staged_source)})
 ET.indent(project, space='  ')
 project.write(target / 'ASC.Mail.ImapSync.Service.csproj', encoding='utf-8', xml_declaration=True)
 refs = target / 'refs'

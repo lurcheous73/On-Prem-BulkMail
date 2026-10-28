@@ -8,7 +8,7 @@ This directory contains a modified source file and patch derived from ONLYOFFICE
 - Original notice: `(c) Copyright Ascensio System Limited 2010-2020`
 - License stated in that file: Apache License, Version 2.0.
 
-The original source copyright and license header is retained. The modified file also carries a notice describing the mailbox routing and recovery changes made on 2026-10-28. The complete modified file and source diff are supplied here.
+The original source copyright and license header is retained. The modified file also carries a notice describing the mailbox routing, recovery and shared-engine serialization changes made on 2026-10-28. The complete modified file and source diff are supplied here.
 
 `UPSTREAM-LICENSE.txt` preserves the Apache-2.0 text from the official ONLYOFFICE CommunityServer repository's LICENSE: <https://github.com/ONLYOFFICE/CommunityServer/blob/master/LICENSE>.
 

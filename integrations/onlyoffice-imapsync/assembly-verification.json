@@ -192,7 +192,7 @@
     ]
   },
   "patched": {
-    "sha256": "cc685e959b77334f221c5167211de9fbea4faec2d856b1f67a20fa17676b6e0b",
+    "sha256": "ffeef42868c9dc0c190ddb56b4dda2b384145bc9f6ef51d09af17f3bf2583b16",
     "references": [
       [
         "ASC.Api.Core",

@@ -3,6 +3,8 @@
  * (c) Copyright Ascensio System Limited 2010-2020
  * Modified 2026-10-28: route draft synchronization by mailbox and defer
  * restoration until that mailbox's Sent state is available.
+ * Modified 2026-10-28: serialize shared mail-engine initialization and
+ * reconciliation, and release only semaphore permits acquired by this call.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,6 +199,9 @@ public class MailImapClient : IDisposable
 
         processActionFromImapTimer.Elapsed += ProcessActionFromImapTimer_Elapsed;
 
+        // Resolve this scoped service before asynchronous folder callbacks start.
+        crmAvailable = _mailEnginesFactory.ApiHelper.IsCrmModuleAvailable();
+
         processActionFromImapTimer.Enabled = true;
 
         if (!UpdateSimplImapClients())
@@ -208,7 +213,6 @@ public class MailImapClient : IDisposable
 
         IsReady = true;
         needUserUpdate = false;
-        crmAvailable = _mailEnginesFactory.ApiHelper.IsCrmModuleAvailable();
     }
 
     private List<MailBoxData> GetUserMailBoxes()
@@ -281,6 +285,8 @@ public class MailImapClient : IDisposable
             DeleteSimpleImapClients(mailbox);
         }
 
+        bool engineLockHeld = false;
+
         try
         {
             var rootSimpleImapClient = new SimpleImapClient(mailbox, _mailSettings, _logProvider, "", _cancelToken.Token);
@@ -301,6 +307,7 @@ public class MailImapClient : IDisposable
             }
 
             _enginesFactorySemaphore.Wait();
+            engineLockHeld = true;
 
             string isLocked = _mailEnginesFactory.MailboxEngine.LockMaibox(mailbox.MailBoxId) ? "locked" : "didn`t lock";
 
@@ -312,7 +319,7 @@ public class MailImapClient : IDisposable
         }
         finally
         {
-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
+            if (engineLockHeld) _enginesFactorySemaphore.Release();
         }
     }
 
@@ -346,11 +353,14 @@ public class MailImapClient : IDisposable
 
             if (folder.IsUserFolder)
             {
-                var userFolder = _mailEnginesFactory.UserFolderEngine.GetByNameOrCreate(folder.folderName);
-
-                simpleImapClient.UserFolderID = userFolder.Id;
+                WithEngineLock(() =>
+                {
+                    var userFolder = _mailEnginesFactory.UserFolderEngine.GetByNameOrCreate(folder.folderName);
+                    simpleImapClient.UserFolderID = userFolder.Id;
+                });
             }
 
+            // Init can invoke MessagesListUpdated; it must run outside the engine lock.
             simpleImapClient.Init(folder.folderName);
         }
         catch (Exception ex)
@@ -394,6 +404,8 @@ public class MailImapClient : IDisposable
 
     private void DeleteSimpleImapClients(MailBoxData mailbox)
     {
+        bool engineLockHeld = false;
+
         try
         {
             var deletedSimpleImapClients = simpleImapClients.Where(x => x.Account.MailBoxId == mailbox.MailBoxId).ToList();
@@ -401,6 +413,7 @@ public class MailImapClient : IDisposable
             deletedSimpleImapClients.ForEach(DeleteSimpleImapClient);
 
             _enginesFactorySemaphore.Wait();
+            engineLockHeld = true;
 
             string isLocked = _mailEnginesFactory.MailboxEngine.ReleaseMailbox(mailbox, _mailSettings) ? "unlocked" : "didn`t unlock";
 
@@ -412,7 +425,7 @@ public class MailImapClient : IDisposable
         }
         finally
         {
-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
+            if (engineLockHeld) _enginesFactorySemaphore.Release();
         }
     }
 
@@ -639,11 +652,11 @@ public class MailImapClient : IDisposable
         }
         finally
         {
-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
-
-            needUserUpdate = true;
-
-            if (_mailEnginesFactory.FolderEngine.needRecalculateFolders) _mailEnginesFactory.FolderEngine.RecalculateFolders();
+            CompleteFolderUpdate(() =>
+            {
+                if (_mailEnginesFactory.FolderEngine.needRecalculateFolders)
+                    _mailEnginesFactory.FolderEngine.RecalculateFolders();
+            });
         }
     }
 
@@ -715,11 +728,38 @@ public class MailImapClient : IDisposable
         }
         finally
         {
-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
+            CompleteFolderUpdate(() =>
+            {
+                if (_mailEnginesFactory.FolderEngine.needRecalculateFolders)
+                    _mailEnginesFactory.FolderEngine.RecalculateFolders();
+            });
+        }
+    }
 
+    private void WithEngineLock(Action action)
+    {
+        _enginesFactorySemaphore.Wait();
+        try
+        {
+            action();
+        }
+        finally
+        {
+            _enginesFactorySemaphore.Release();
+        }
+    }
+
+    private void CompleteFolderUpdate(Action recalculateFolders)
+    {
+        // The caller still owns the same lock used for folder reconciliation.
+        try
+        {
             needUserUpdate = true;
-
-            if (_mailEnginesFactory.FolderEngine.needRecalculateFolders) _mailEnginesFactory.FolderEngine.RecalculateFolders();
+            recalculateFolders();
+        }
+        finally
+        {
+            _enginesFactorySemaphore.Release();
         }
     }
 

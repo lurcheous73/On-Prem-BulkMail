@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <ImapSyncBuildRoot Condition="'$(ImapSyncBuildRoot)' == ''">/tmp/onlyoffice-imapsync-service-build</ImapSyncBuildRoot>
+    <ImapSyncBuildRoot Condition="'$(ImapSyncBuildRoot)' == ''">/tmp/onlyoffice-imapsync-service-build-v3</ImapSyncBuildRoot>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(ImapSyncBuildRoot)/ASC.Mail.ImapSync.Service.csproj" />

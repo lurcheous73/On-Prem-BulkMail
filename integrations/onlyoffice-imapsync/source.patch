@@ -1,17 +1,17 @@
-diff --git a/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs b/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs
-index c171ccd..a5c20b4 100644
 --- a/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs
 +++ b/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs
-@@ -1,6 +1,8 @@
+@@ -1,6 +1,10 @@
  /*
   *
   * (c) Copyright Ascensio System Limited 2010-2020
 + * Modified 2026-10-28: route draft synchronization by mailbox and defer
 + * restoration until that mailbox's Sent state is available.
++ * Modified 2026-10-28: serialize shared mail-engine initialization and
++ * reconciliation, and release only semaphore permits acquired by this call.
   * 
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
-@@ -30,6 +32,7 @@ public class MailImapClient : IDisposable
+@@ -30,6 +34,7 @@
      private readonly ConcurrentQueue<ImapAction> imapActionsQueue;
      private readonly ConcurrentQueue<NewMessageFromIMAPData> NewMessageQueue;
      private readonly List<SimpleImapClient> simpleImapClients;
@@ -19,7 +19,7 @@ index c171ccd..a5c20b4 100644
      private readonly IServiceProvider clientScope;
  
      private readonly SemaphoreSlim _enginesFactorySemaphore;
-@@ -79,14 +82,19 @@ public class MailImapClient : IDisposable
+@@ -79,14 +84,19 @@
                      case MailUserAction.Nothing:
                          break;
                      case MailUserAction.SendDraft:
@@ -42,7 +42,97 @@ index c171ccd..a5c20b4 100644
                          }
                          break;
                      case MailUserAction.SetAsRead:
-@@ -539,6 +547,7 @@ public class MailImapClient : IDisposable
+@@ -189,6 +199,9 @@
+ 
+         processActionFromImapTimer.Elapsed += ProcessActionFromImapTimer_Elapsed;
+ 
++        // Resolve this scoped service before asynchronous folder callbacks start.
++        crmAvailable = _mailEnginesFactory.ApiHelper.IsCrmModuleAvailable();
++
+         processActionFromImapTimer.Enabled = true;
+ 
+         if (!UpdateSimplImapClients())
+@@ -200,7 +213,6 @@
+ 
+         IsReady = true;
+         needUserUpdate = false;
+-        crmAvailable = _mailEnginesFactory.ApiHelper.IsCrmModuleAvailable();
+     }
+ 
+     private List<MailBoxData> GetUserMailBoxes()
+@@ -273,6 +285,8 @@
+             DeleteSimpleImapClients(mailbox);
+         }
+ 
++        bool engineLockHeld = false;
++
+         try
+         {
+             var rootSimpleImapClient = new SimpleImapClient(mailbox, _mailSettings, _logProvider, "", _cancelToken.Token);
+@@ -293,6 +307,7 @@
+             }
+ 
+             _enginesFactorySemaphore.Wait();
++            engineLockHeld = true;
+ 
+             string isLocked = _mailEnginesFactory.MailboxEngine.LockMaibox(mailbox.MailBoxId) ? "locked" : "didn`t lock";
+ 
+@@ -304,7 +319,7 @@
+         }
+         finally
+         {
+-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
++            if (engineLockHeld) _enginesFactorySemaphore.Release();
+         }
+     }
+ 
+@@ -338,11 +353,14 @@
+ 
+             if (folder.IsUserFolder)
+             {
+-                var userFolder = _mailEnginesFactory.UserFolderEngine.GetByNameOrCreate(folder.folderName);
+-
+-                simpleImapClient.UserFolderID = userFolder.Id;
+-            }
+-
++                WithEngineLock(() =>
++                {
++                    var userFolder = _mailEnginesFactory.UserFolderEngine.GetByNameOrCreate(folder.folderName);
++                    simpleImapClient.UserFolderID = userFolder.Id;
++                });
++            }
++
++            // Init can invoke MessagesListUpdated; it must run outside the engine lock.
+             simpleImapClient.Init(folder.folderName);
+         }
+         catch (Exception ex)
+@@ -386,6 +404,8 @@
+ 
+     private void DeleteSimpleImapClients(MailBoxData mailbox)
+     {
++        bool engineLockHeld = false;
++
+         try
+         {
+             var deletedSimpleImapClients = simpleImapClients.Where(x => x.Account.MailBoxId == mailbox.MailBoxId).ToList();
+@@ -393,6 +413,7 @@
+             deletedSimpleImapClients.ForEach(DeleteSimpleImapClient);
+ 
+             _enginesFactorySemaphore.Wait();
++            engineLockHeld = true;
+ 
+             string isLocked = _mailEnginesFactory.MailboxEngine.ReleaseMailbox(mailbox, _mailSettings) ? "unlocked" : "didn`t unlock";
+ 
+@@ -404,7 +425,7 @@
+         }
+         finally
+         {
+-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
++            if (engineLockHeld) _enginesFactorySemaphore.Release();
+         }
+     }
+ 
+@@ -539,6 +560,7 @@
              else
              {
                  UpdateDbFolder(simpleImapClient);
@@ -50,7 +140,24 @@ index c171ccd..a5c20b4 100644
              }
          }
      }
-@@ -695,27 +704,8 @@ public class MailImapClient : IDisposable
+@@ -630,11 +652,11 @@
+         }
+         finally
+         {
+-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
+-
+-            needUserUpdate = true;
+-
+-            if (_mailEnginesFactory.FolderEngine.needRecalculateFolders) _mailEnginesFactory.FolderEngine.RecalculateFolders();
++            CompleteFolderUpdate(() =>
++            {
++                if (_mailEnginesFactory.FolderEngine.needRecalculateFolders)
++                    _mailEnginesFactory.FolderEngine.RecalculateFolders();
++            });
+         }
+     }
+ 
+@@ -695,27 +717,8 @@
  
              if (workFolderMails.Any())
              {
@@ -80,10 +187,49 @@ index c171ccd..a5c20b4 100644
              }
  
          }
-@@ -733,6 +723,52 @@ public class MailImapClient : IDisposable
+@@ -725,11 +728,84 @@
          }
-     }
- 
+         finally
+         {
+-            if (_enginesFactorySemaphore.CurrentCount == 0) _enginesFactorySemaphore.Release();
+-
++            CompleteFolderUpdate(() =>
++            {
++                if (_mailEnginesFactory.FolderEngine.needRecalculateFolders)
++                    _mailEnginesFactory.FolderEngine.RecalculateFolders();
++            });
++        }
++    }
++
++    private void WithEngineLock(Action action)
++    {
++        _enginesFactorySemaphore.Wait();
++        try
++        {
++            action();
++        }
++        finally
++        {
++            _enginesFactorySemaphore.Release();
++        }
++    }
++
++    private void CompleteFolderUpdate(Action recalculateFolders)
++    {
++        // The caller still owns the same lock used for folder reconciliation.
++        try
++        {
+             needUserUpdate = true;
+-
+-            if (_mailEnginesFactory.FolderEngine.needRecalculateFolders) _mailEnginesFactory.FolderEngine.RecalculateFolders();
++            recalculateFolders();
++        }
++        finally
++        {
++            _enginesFactorySemaphore.Release();
++        }
++    }
++
 +    private void RestoreMissingDrafts(SimpleImapClient draftClient, List<MailInfo> pendingDrafts,
 +        Action<CashedMailUserAction> restore)
 +    {
@@ -127,9 +273,6 @@ index c171ccd..a5c20b4 100644
 +        foreach (var draftClient in draftClients)
 +        {
 +            updateDraft(draftClient);
-+        }
-+    }
-+
-     private void SetMessageFlagsFromImap(MessageDescriptor imap_message, MailInfo db_message)
-     {
-         if (imap_message == null || db_message == null) return;
+         }
+     }
+ 

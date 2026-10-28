@@ -1,0 +1,42 @@
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS send from the second mailbox queues its Draft cleanup
+PASS another mailbox's unsent draft is untouched
+PASS the successful Sent copy is untouched
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS mailbox ordering does not change cleanup ownership
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS a multi-ID action reaches both owning Draft mailboxes
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS an unknown message ID cannot clean up another draft
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS an unloaded first mailbox does not block the matching loaded mailbox
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS no Draft clients is handled without a transport operation
+PASS one actual Sent-folder recovery selector is identified
+PASS recovery excludes another mailbox's Sent folder
+PASS recovery selects the sending mailbox's Sent folder
+PASS recovery excludes a Draft folder in the same mailbox
+PASS the real recovery and readiness flow are available
+PASS missing own Sent defers restoration despite another mailbox being ready
+PASS deferred pending drafts remain intact
+PASS another mailbox becoming ready cannot release deferred recovery
+PASS an unloaded own Sent list neither restores nor retries
+PASS Sent readiness retries only the same mailbox's loaded Draft client
+PASS ready Sent suppresses the sent copy and restores only the genuinely missing draft
+PASS an earlier unloaded Sent client cannot hide its loaded replacement
+PASS recovery emits only draft-update actions, never a send action
+PASS a consumed deferred marker prevents a redundant readiness retry
+PASS filtering all pending drafts as already sent invokes no restore callback
+PASS a known empty own Sent list allows legitimate draft recovery
+PASS recovery fixture executes no IMAP tasks
+FAIL the real shared-engine lock helpers are available
+FAIL creation failure before Wait cannot release another callback's permit
+FAIL deletion failure before Wait cannot release another callback's permit
+PASS deletion failure after Wait releases its own permit
+Checks 41; failures 3; network operations 0; IMAP tasks started 0
