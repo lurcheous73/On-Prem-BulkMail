@@ -1,0 +1,19 @@
+{
+  "enabled": false,
+  "broker_origin": "https://work.the-grange.uk:9443",
+  "issuer": "https://work.the-grange.uk",
+  "redirect_uri": "https://meet.the-grange.uk/host/auth/ct400/callback",
+  "client_id": "meet-host",
+  "client_secret": "REPLACE_WITH_PRIVATE_RANDOM_SECRET_AT_LEAST_32_CHARACTERS",
+  "subjects": {
+    "11111111-1111-4111-8111-111111111111": "julie",
+    "22222222-2222-4222-8222-222222222222": "ct400-example"
+  },
+  "additional_hosts": {
+    "ct400-example": {
+      "name": "Example Work Host",
+      "email": "example@example.invalid",
+      "admin": false
+    }
+  }
+}
