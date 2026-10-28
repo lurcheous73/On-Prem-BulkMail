@@ -1,0 +1,258 @@
+{
+  "date": "2026-10-28",
+  "status": "private_routes_deployed_staff_bulkmail_and_meet_sign_in_confirmed",
+  "scope": "Private server-to-server connection routes preserve the existing public HTTPS origins and all identity checks. The operator did not extract or fabricate staff credentials or sessions; final verification observed ordinary staff browser sign-ins.",
+  "evidence_origin": "Live measurements and deployment results supplied by the parent operator; isolated source and regression checks performed locally.",
+  "measured_slow_requests_before_private_route": {
+    "observation_window_utc": "2026-10-28T21:39:00Z to 2026-10-28T21:42:59Z",
+    "affected_api_calls": 5,
+    "request_cookie_present": true,
+    "request_cookie_valid_format": true,
+    "cookie_validity_not_inferred_from_format": true,
+    "bootstrap_session_database_schema_elapsed_ms_approximately": 1,
+    "api_elapsed_ms_min": 40036,
+    "api_elapsed_ms_max": 40041,
+    "curl_error_code": 28,
+    "upstream_http_status": 0,
+    "home_then_login_redirect_repeated_verification": true,
+    "failed_api_calls_seen_in_work_upstream_access_log": false,
+    "does_not_establish_cause_of_every_earlier_safari_499": true
+  },
+  "resolver_investigation": {
+    "live_libcurl_version": "7.88.1",
+    "live_php_zts": false,
+    "live_curl_asynchronous_dns": true,
+    "configured_connect_timeout_seconds_unchanged": 4,
+    "configured_total_timeout_seconds_unchanged": 12,
+    "root_and_service_user_cli_probes_http_status": 401,
+    "root_and_service_user_cli_probes_elapsed_ms_min": 35,
+    "root_and_service_user_cli_probes_elapsed_ms_max": 59,
+    "controlled_fpm_probe_before_pin_elapsed_ms": 73,
+    "same_network_namespace_resolver_and_no_proxy_variables_checked": true,
+    "private_route_preflight_trusted_https_http_status": 401,
+    "private_route_preflight_elapsed_ms": 36,
+    "source_supported_explanation": "curl 7.88.1 multi_handle_timeout sets CURLE_OPERATION_TIMEDOUT, then multi_done invokes Curl_resolver_kill. The threaded resolver can call thread_wait_resolv and Curl_thread_join while getaddrinfo is still running, so cleanup can extend wall time beyond the configured transport timeout.",
+    "causal_limit": "The measured bottleneck was the API transport wait. Resolver or route intermittency is consistent with these measurements, but the exact failing DNS server or packet path was not isolated. Fast controlled probes do not prove a valid staff login.",
+    "upstream_sources": [
+      {
+        "url": "https://github.com/curl/curl/blob/curl-7_88_1/lib/multi.c",
+        "git_blob_sha1": "f020a0b64acf159798dc7bbedc87a9b25e3c86f6"
+      },
+      {
+        "url": "https://github.com/curl/curl/blob/curl-7_88_1/lib/asyn-thread.c",
+        "git_blob_sha1": "4d7f8605f7701234ebc7c2a78669a7b87db1d3f1"
+      },
+      {
+        "url": "https://github.com/php/php-src/blob/PHP-8.2/ext/curl/interface.c",
+        "git_blob_sha1": "336b75d1413709079194b82ee60c7be92584feb6",
+        "finding": "PHP enables CURLOPT_NOSIGNAL by default under ZTS only; the measured installation is not ZTS."
+      },
+      {
+        "url": "https://curl.se/libcurl/c/CURLOPT_RESOLVE.html",
+        "finding": "An exact hostname-and-port DNS cache entry selects a numeric connection address without replacing the URL."
+      }
+    ]
+  },
+  "bulkmail_deployment": {
+    "status": "deployed_controlled_transport_and_staff_login_verified",
+    "host": "CT300",
+    "upstream_origin_unchanged": "https://work.the-grange.uk",
+    "private_setting": "identity.connect_address",
+    "private_setting_supplied_by_root_managed_configuration_only": true,
+    "reviewed_runtime_hashes_verified": true,
+    "existing_configuration_values_preserved": true,
+    "trusted_https_preserved": true,
+    "rollback_backup": "/var/backups/grange-identity-private-route/20261028-64hn9k5n",
+    "controlled_native_api_elapsed_ms": 34,
+    "controlled_real_php_fpm_login_page_elapsed_ms": 58,
+    "fresh_staff_browser_success_observed": true,
+    "controlled_real_php_fpm_api_result": {
+      "synthetic_invalid_cookie_only": true,
+      "http_status": 401,
+      "curl_code": 0,
+      "elapsed_ms": 26,
+      "dns_ms": 0,
+      "connect_ms": 0,
+      "tls_ms": 21,
+      "first_byte_ms": 26,
+      "total_ms": 26,
+      "whole_login_page_elapsed_ms": 58
+    },
+    "verification_time_utc": "2026-10-28T21:55:35Z",
+    "controlled_probe_time_utc": "2026-10-28T21:55:34Z",
+    "actual_staff_end_to_end_latency_measured": false,
+    "staff_login_verified_time_utc": "2026-10-28T22:03:55Z"
+  },
+  "meet_backchannel": {
+    "status": "deployed_controlled_backchannel_and_staff_exchange_verified",
+    "source_host": "Canada CT320",
+    "runtime_user": "www-data",
+    "destination_origin_unchanged": "https://work.the-grange.uk:9443",
+    "existing_private_tunnel_used": true,
+    "trusted_https_preflight_elapsed_ms": 255,
+    "application_adapter_deployed": true,
+    "fresh_staff_browser_success_observed": true,
+    "independent_review": {
+      "decision": "GO",
+      "source_and_test_hashes_verified": true,
+      "existing_sso_and_actual_http_handler_cases_passed": 35,
+      "real_local_https_private_route_cases_passed": 9,
+      "total_independently_rerun": 44,
+      "ipv6_https_case_executed_not_skipped": true,
+      "wrong_hostname_and_untrusted_certificate_rejected_before_post": true,
+      "original_browser_origins_callback_issuer_state_and_pkce_preserved": true,
+      "existing_accounts_and_local_sessions_preserved": true,
+      "source_blockers": 0
+    },
+    "source_sha256": {
+      "integrations/meet-host/grange_ct400_sso.py": "3f7e9cdc01afc413640d3608556478d9f2b10249b15b745e16699e8001df2188",
+      "integrations/meet-host/test_sso.py": "b501b6db4dc4db52032f29a4a4dc5495658398bff0f6d848a1765b1050f14a77",
+      "integrations/meet-host/test_broker_connect.py": "5476d7e8f39689b0b1b61100378336f6eba047edc56af1dc3e05939d7d50fcd4"
+    },
+    "reviewed_runtime_hash_verified": true,
+    "rollback_backup": "/var/backups/grange-meet-private-route/20261028-c36n32pj",
+    "host_application_sha256_unchanged": "4a669825e01ed301f751fcfd1f38b7967b91acf8d0eb4074e46858226974038e",
+    "other_private_configuration_values_preserved": true,
+    "only_service_restarted": "grange-meet-host",
+    "service_active": true,
+    "host_login_http_status": 200,
+    "controlled_live_backchannel": {
+      "runtime_user": "www-data",
+      "connection_implementation": "PinnedBrokerHTTPSConnection",
+      "default_certificate_trust_and_original_hostname_verification": true,
+      "configured_service_client_authentication_accepted": true,
+      "deliberately_invalid_authorization_code_rejected": true,
+      "http_status": 400,
+      "expected_error": "invalid_grant",
+      "elapsed_ms": 369,
+      "real_staff_code_or_session_used": false
+    },
+    "verification_time_utc": "2026-10-28T21:59:25Z",
+    "verification_time_is_not_exact_service_apply_time": true,
+    "staff_login_verified_time_utc": "2026-10-28T22:03:59Z"
+  },
+  "preserved_invariants": {
+    "public_browser_urls_and_callback_unchanged": true,
+    "identity_issuer_and_existing_account_bindings_unchanged": true,
+    "http_host_and_tls_sni_unchanged": true,
+    "certificate_chain_and_hostname_validation_enabled": true,
+    "redirect_following_disabled": true,
+    "configured_pin_bypasses_environment_proxies_only_when_enabled": true,
+    "empty_or_omitted_pin_preserves_original_transport": true,
+    "invalid_configured_pin_fails_without_dns_fallback": true,
+    "request_parameters_headers_and_cookies_cannot_control_connection_route": true,
+    "account_password_role_or_ownership_updates": 0,
+    "messages_sent_or_queued": 0,
+    "authentication_revalidation_cache_and_logout_rules_unchanged": true
+  },
+  "diagnostics": {
+    "additional_event": "api_result",
+    "additional_fields": [
+      "dns_ms",
+      "connect_ms",
+      "tls_ms",
+      "first_byte_ms",
+      "total_ms"
+    ],
+    "meaning": "Cumulative milestones from transfer start, rounded to milliseconds. Zero may mean the milestone was not reached.",
+    "value_type": "integer",
+    "minimum": 0,
+    "maximum": 300000,
+    "non_numeric_or_non_finite_input_replaced_with_zero": true,
+    "whole_curl_getinfo_array_logged": false,
+    "addresses_urls_credentials_identities_and_bodies_logged": false,
+    "wall_clock_elapsed_ms_retained": true
+  },
+  "local_tests": {
+    "private_route_validation": 30,
+    "real_local_https_private_route_cases": 7,
+    "identity_diagnostic_safety": 28,
+    "existing_real_local_https_portal_flow": 33,
+    "existing_portal_identity": 51,
+    "existing_account_identity": 53,
+    "total_passed": 202,
+    "php_lint_passed": true,
+    "diff_whitespace_check_passed": true,
+    "ipv6_https_case_executed_not_skipped": true,
+    "wrong_hostname_trusted_ca_and_untrusted_certificate_rejected_before_http": true,
+    "nonexistent_dns_hostname_reached_only_through_configured_numeric_pin": true,
+    "synthetic_data_and_disposable_local_certificates_only": true,
+    "scope": "BulkMail private route and existing identity regressions"
+  },
+  "independent_review": {
+    "decision": "GO",
+    "runtime_and_test_hashes_verified": true,
+    "private_route_validation_checks_rerun": 30,
+    "real_https_cases_rerun": 7,
+    "diagnostic_checks_rerun": 28,
+    "total_independently_rerun": 65,
+    "source_blockers": 0,
+    "scope": "BulkMail private route and diagnostic changes"
+  },
+  "bulkmail_source_sha256": {
+    "app/bulkmail-identity.php": "add81c08f9340056e2cf1f132e734a19dc24f28b9558edda1cfef52ba24715f3",
+    "app/bulkmail-integrations.php": "7b376c3d65bf35e6fc64ddc288beb488a673ce061d3a187b2c57fb3f60a7f082",
+    "tests/identity-connect.php": "7b44515837d5a63046c84c431353b2a3e15b8dc04d174fc3aed773b9448a55ac",
+    "tests/identity-connect-http.py": "bb31980f56bf8f09fd0e5caa3932a991c4faa101a5ec30d23df1bc36c056541d",
+    "tests/identity-portal-diagnostics.php": "b8410870d6a16c3029701b505f0ef39bd06f669b91b70cc5f6372cf660d0fdc5",
+    "tests/identity-portal-http.py": "815d3aa45cf7d8dbbc90c60b77612652857d38d620ad9117e31f7a2f24b43de7",
+    "deployment/integrations.php.example": "6ce07c5cb365bf9cc5bdffc61e72b6ad9e5f42bc1ffdabed9fe7b2f148383685",
+    "docs/CT400-ACCOUNTS.md": "61e73e1eae190744229f41c78703fb0b0f75e15b2429ff1fcb1bd0aa9af21271"
+  },
+  "post_route_staff_observation": "Earlier controlled checks through 22:00 UTC did not verify a staff session. Ordinary staff browser requests subsequently completed BulkMail login at 22:03:55 and Meet login at 22:03:59 UTC. The user then confirmed successful immediate access. Recorded milliseconds are server-side measurements, not a browser network timing measurement.",
+  "runtime_source_commit": "341654ffd619856cf8e2840de1107ffa29c5a696",
+  "staff_browser_confirmation": {
+    "status": "confirmed_by_live_authentication_events_and_user",
+    "bulkmail": {
+      "time_utc": "2026-10-28T22:03:55Z",
+      "work_api_http_status": 200,
+      "work_api_elapsed_ms": 39,
+      "home_http_status": 200,
+      "home_server_elapsed_ms": 53,
+      "audit_login_events": 1,
+      "audit_authentication_method": "ct400_portal",
+      "audit_checked_read_only": true,
+      "later_authenticated_pages": [
+        {
+          "time_utc": "2026-10-28T22:04:27Z",
+          "session_validated": true,
+          "server_elapsed_ms": 2
+        },
+        {
+          "time_utc": "2026-10-28T22:04:39Z",
+          "session_validated": true,
+          "server_elapsed_ms": 2
+        },
+        {
+          "time_utc": "2026-10-28T22:04:46Z",
+          "session_validated": true,
+          "server_elapsed_ms": 2
+        }
+      ]
+    },
+    "meet": {
+      "work_api_time_utc": "2026-10-28T22:03:58Z",
+      "work_api_http_status": 200,
+      "work_api_elapsed_ms": 31,
+      "broker_token_outcome": "exchanged",
+      "broker_token_http_status": 200,
+      "broker_token_server_elapsed_ms": 3,
+      "callback_time_utc": "2026-10-28T22:03:59Z",
+      "callback_outcome": "session_created",
+      "host_page_http_status": 200
+    },
+    "separate_anonymous_request": {
+      "time_utc": "2026-10-28T22:04:25Z",
+      "portal_cookie_present": false,
+      "outcome": "expected_login_fallback",
+      "not_conflated_with_confirmed_staff_flow": true
+    },
+    "user_confirmation": {
+      "approximate_time_utc": "2026-10-28T22:05Z",
+      "message": "straight in kev thanks"
+    },
+    "identities_or_credentials_printed": false,
+    "operator_extracted_or_fabricated_staff_credentials_or_sessions": false,
+    "server_timings_are_not_end_to_end_browser_latency": true
+  }
+}

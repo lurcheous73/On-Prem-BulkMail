@@ -1,0 +1,52 @@
+{
+  "challenge_dir": "/var/lib/grange-certificate-renewal/challenges",
+  "controller_path": "/opt/grange-mail-dns-controller/controller.py",
+  "email": "support@the-grange.uk",
+  "hosts": {
+    "mx1.brimstonecottage.uk": {
+      "authenticator": "webroot",
+      "csr_path": "/etc/grange-certificate-renewal/csr/mx1.brimstonecottage.uk.csr",
+      "reference_fullchain": "/etc/grange-certificate-renewal/reference/mx1.brimstonecottage.uk.pem",
+      "sans": [
+        "mx1.brimstonecottage.uk"
+      ],
+      "spki_sha256": "cff81f0c1716696f31ccb37ab3726114b1115ae4d1e4cc391f303ba5b26d610c"
+    },
+    "mx1.the-grange.uk": {
+      "authenticator": "cloudflare",
+      "cloudflare_account": "personal",
+      "csr_path": "/etc/grange-certificate-renewal/csr/mx1.the-grange.uk.csr",
+      "reference_fullchain": "/etc/grange-certificate-renewal/reference/mx1.the-grange.uk.pem",
+      "sans": [
+        "mx1.the-grange.uk"
+      ],
+      "spki_sha256": "db940183c6fd576736d6dac801a439c6cba44097909b3fb1432369f9f436f082",
+      "zone": "the-grange.uk"
+    },
+    "mx2.brimstonecottage.uk": {
+      "authenticator": "webroot",
+      "csr_path": "/etc/grange-certificate-renewal/csr/mx2.brimstonecottage.uk.csr",
+      "reference_fullchain": "/etc/grange-certificate-renewal/reference/mx2.brimstonecottage.uk.pem",
+      "sans": [
+        "mx2.brimstonecottage.uk"
+      ],
+      "spki_sha256": "49b4f177e05405252ea1f803c3df76e781a2bb534c653aecb5038f99c6f41625"
+    },
+    "mx2.the-grange.uk": {
+      "authenticator": "cloudflare",
+      "cloudflare_account": "personal",
+      "csr_path": "/etc/grange-certificate-renewal/csr/mx2.the-grange.uk.csr",
+      "reference_fullchain": "/etc/grange-certificate-renewal/reference/mx2.the-grange.uk.pem",
+      "sans": [
+        "mta-sts.the-grange.uk",
+        "mx2.the-grange.uk"
+      ],
+      "spki_sha256": "658976573ecd31767bacb950b658d5b6b3e88597478f8e7ad34aff3e0b55268a",
+      "zone": "the-grange.uk"
+    }
+  },
+  "interval_days": 28,
+  "public_dir": "/var/lib/grange-certificate-renewal/public",
+  "schema": 1,
+  "state_dir": "/var/lib/grange-certificate-renewal/issuer"
+}

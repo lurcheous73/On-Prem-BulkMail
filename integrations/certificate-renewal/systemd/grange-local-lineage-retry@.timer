@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly backoff check for enrolled local certificate lineage %i
+
+[Timer]
+OnCalendar=*-*-* *:35:00 UTC
+AccuracySec=1s
+Persistent=true
+Unit=grange-local-lineage-retry@%i.service
+
+[Install]
+WantedBy=timers.target
+

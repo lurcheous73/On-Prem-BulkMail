@@ -25,3 +25,9 @@ qa-auth.json
 qa-http.log
 qa/
 compose-files/
+
+node_modules/
+*.sqlite-wal
+*.sqlite-shm
+integrations.php
+bulkmail-whatsapp.env

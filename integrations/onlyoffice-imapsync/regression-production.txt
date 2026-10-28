@@ -1,0 +1,25 @@
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+FAIL send from the second mailbox queues its Draft cleanup
+PASS another mailbox's unsent draft is untouched
+PASS the successful Sent copy is untouched
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS mailbox ordering does not change cleanup ownership
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+FAIL a multi-ID action reaches both owning Draft mailboxes
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS an unknown message ID cannot clean up another draft
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+FAIL an unloaded first mailbox does not block the matching loaded mailbox
+PASS the real dispatcher consumed the fixture action
+PASS all queued IMAP tasks remain unstarted
+PASS no Draft clients is handled without a transport operation
+PASS one actual Sent-folder recovery selector is identified
+FAIL recovery excludes another mailbox's Sent folder
+PASS recovery selects the sending mailbox's Sent folder
+PASS recovery excludes a Draft folder in the same mailbox
+Checks 24; failures 4; network operations 0; IMAP tasks started 0

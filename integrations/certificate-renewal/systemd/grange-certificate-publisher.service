@@ -1,0 +1,27 @@
+[Unit]
+Description=Private read-only public certificate and ACME challenge publisher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=grange-cert-public
+Group=grange-cert-public
+ExecStart=/usr/bin/python3 -B /opt/grange-certificate-renewal/public_server.py --config /etc/grange-certificate-renewal/publisher.json
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_UNIX
+CapabilityBoundingSet=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

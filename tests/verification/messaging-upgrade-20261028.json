@@ -1,0 +1,89 @@
+{
+  "release": "SMS Gate, Baileys and CT400 account integration",
+  "date": "2026-10-28",
+  "base_commit": "35e973d85c884c64dbaeb8eae9d4d92fef328bfb",
+  "source_verification": {
+    "existing_contact_http_checks": 31,
+    "existing_full_mailer_http_checks": 40,
+    "messaging_queue_adapter_checks": 81,
+    "identity_database_checks": 53,
+    "identity_http_checks": 20,
+    "gateway_node_checks": 20,
+    "messaging_http_checks": 26,
+    "private_configuration_checks": 6,
+    "upgrade_rollback_checks": 37,
+    "php_syntax": "passed",
+    "shell_syntax": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed",
+    "synthetic_data_only": true,
+    "real_messages_sent": 0,
+    "total_checks": 314
+  },
+  "preservation_verified": [
+    "Existing user IDs, usernames, password hashes, roles, active flags and profiles",
+    "Existing contacts, groups, ownership and email history",
+    "Existing email worker and delivery configuration",
+    "Public unsubscribe with an expired CT400 session",
+    "SQLite WAL ownership with an existing www-data reader",
+    "Complete upgrade and private backup of a cold www-data WAL database",
+    "Code rollback without restoring an old live database"
+  ],
+  "defaults": {
+    "sms_sending": "disabled",
+    "whatsapp_connection": "disabled",
+    "whatsapp_sending": "disabled",
+    "ct400_login": "disabled",
+    "automatic_channel_grants": false
+  },
+  "live_activation_outstanding": [
+    "Android handset and SMSGate local API credentials",
+    "Pair intended WhatsApp account by QR",
+    "Configure CT400 directory access and verify explicit account links",
+    "Authorised single-recipient live delivery tests"
+  ],
+  "deployment": {
+    "status": "installed_with_integrations_disabled",
+    "application_commit": "c31ec6d37623984b0baaf73394505b510e51b3a2",
+    "staging": {
+      "container": "CT301",
+      "verified_at": "2026-10-28T17:46:25.853053+00:00",
+      "deployment_checks_passed": 25,
+      "php_version": "8.2.33",
+      "identity_http_checks_passed": 20,
+      "messaging_http_checks_passed": 26,
+      "network_disconnected": true,
+      "email_worker_and_postfix_stopped": true,
+      "returned_to_stopped_state": true
+    },
+    "live": {
+      "container": "CT300",
+      "verified_at": "2026-10-28T17:47:52.297918+00:00",
+      "deployment_checks_passed": 25,
+      "existing_user_count": 5,
+      "all_existing_user_rows_identical": true,
+      "peter_original_account_password_and_permissions_preserved": true,
+      "all_legacy_tables_identical": true,
+      "database_integrity": "ok",
+      "foreign_key_errors": 0,
+      "database_and_wal_owner_preserved": true,
+      "existing_email_worker_and_mail_configuration_unchanged": true,
+      "nginx_active": true,
+      "php_fpm_active": true,
+      "email_worker_active": true,
+      "postfix_active": true,
+      "messaging_worker_active": true,
+      "whatsapp_gateway_active": true,
+      "gateway_status": "disabled",
+      "gateway_authenticated_and_loopback_only": true,
+      "private_configuration_permissions_verified": true,
+      "installed_code_matches_application_commit": true,
+      "public_https_login_status": 200,
+      "public_https_tls_verified": true,
+      "private_backups_created": true
+    },
+    "ct400_identity_links_created": 0,
+    "messaging_channel_grants_created": 0,
+    "real_messages_sent_by_deployment": 0
+  }
+}

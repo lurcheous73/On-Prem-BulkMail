@@ -1,12 +1,21 @@
 <?php
 declare(strict_types=1);
 
-session_start([
-    'cookie_httponly' => true,
-    'cookie_samesite' => 'Lax',
-    'cookie_secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-    'use_strict_mode' => true,
-]);
+require_once __DIR__.'/bulkmail-request-diagnostics.php';
+bm_request_diagnostic('ingress');
+// Both broker routes authenticate independently and always exit their handler.
+// They must not wait for or inherit an unrelated local BulkMail session.
+if (in_array($_GET['page'] ?? null, ['portal_sso_authorize','portal_sso_token'], true)) {
+    bm_request_diagnostic('session_skipped_broker');
+} else {
+    session_start([
+        'cookie_httponly' => true,
+        'cookie_samesite' => 'Lax',
+        'cookie_secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'use_strict_mode' => true,
+    ]);
+    bm_request_diagnostic('session_ready');
+}
 
 const APP_NAME = 'The Grange Bulk Mail';
 const DB_FILE = '/var/lib/bulkmail/bulkmail.sqlite';
@@ -23,6 +32,14 @@ $db = new PDO('sqlite:' . DB_FILE, null, null, [
 ]);
 $db->exec('PRAGMA foreign_keys=ON');
 $db->exec('PRAGMA busy_timeout=5000');
+bm_request_diagnostic('database_ready');
+require_once __DIR__.'/bulkmail-integrations.php';
+require_once __DIR__.'/bulkmail-identity.php';
+require_once __DIR__.'/bulkmail-portal-sso.php';
+require_once __DIR__.'/bulkmail-messaging-core.php';
+bm_identity_schema($db);
+bm_portal_sso_schema($db);
+bm_message_schema($db);
 $db->exec('CREATE TABLE IF NOT EXISTS mailing_recipient_attachments (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  mailing_recipient_id INTEGER NOT NULL,
@@ -33,6 +50,7 @@ $db->exec('CREATE TABLE IF NOT EXISTS mailing_recipient_attachments (
  FOREIGN KEY(mailing_recipient_id) REFERENCES mailing_recipients(id) ON DELETE CASCADE
 )');
 $db->exec('CREATE INDEX IF NOT EXISTS idx_recipient_attachments_recipient ON mailing_recipient_attachments(mailing_recipient_id)');
+bm_request_diagnostic('schema_ready');
 
 function h(?string $v): string { return htmlspecialchars($v ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function now(): string { return gmdate('Y-m-d H:i:s'); }
@@ -47,7 +65,12 @@ function require_login(): void { if (!logged_in()) redirect('?page=login'); }
 function require_admin(): void { require_login(); if (!is_admin()) { http_response_code(403); exit('Administrator access required'); } }
 function ip(): string { return $_SERVER['REMOTE_ADDR'] ?? ''; }
 function user(PDO $db,int $id): ?array { $s=$db->prepare('SELECT * FROM users WHERE id=?'); $s->execute([$id]); return $s->fetch() ?: null; }
-function audit(PDO $db,string $action,string $details=''): void { $s=$db->prepare('INSERT INTO audit_log(user_id,action,details,ip_address) VALUES(?,?,?,?)'); $s->execute([$_SESSION['user_id'] ?? null,$action,$details,ip()]); }
+function audit(PDO $db,string $action,string $details='',?int $ownerId=null): void {
+    $actorId=isset($_SESSION['user_id'])?(int)$_SESSION['user_id']:null;
+    $s=$db->prepare('INSERT INTO audit_log(user_id,action,details,ip_address) VALUES(?,?,?,?)');
+    $s->execute([$actorId,$action,$details,ip()]);
+    bm_identity_record_audit($db,(int)$db->lastInsertId(),$actorId,$action,$details,$ownerId);
+}
 function safe_name(string $name): string { $name=preg_replace('/[^A-Za-z0-9._ -]+/','_',basename($name)); return trim($name) ?: 'file'; }
 function fmt_bytes(int $n): string { if ($n<1024) return $n.' B'; if ($n<1048576) return round($n/1024,1).' KB'; return round($n/1048576,1).' MB'; }
 function random_token(int $bytes=24): string { return bin2hex(random_bytes($bytes)); }
@@ -206,8 +229,8 @@ function layout_start(string $title): void {
 CSS;
     echo '<link rel="stylesheet" href="/bulkmail-fonts.css?v=20261016r2"></head><body>';
     if (logged_in()) {
-        echo '<header><strong>'.APP_NAME.'</strong><nav><a href="?">Home</a><a href="?page=compose">Send Email</a><a href="?page=contacts">Contacts</a><a href="?page=groups">Groups</a><a href="?page=templates">Templates</a><a href="?page=drafts">Saved Drafts</a><a href="?page=history">Sent / History</a>';
-        if (is_admin()) echo '<a href="?page=users">Users</a><a href="?page=domains">Domains</a><a href="?page=senders">Senders</a><a href="?page=compliance">Compliance</a><a href="?page=audit">Audit</a>';
+        echo '<header><strong>'.APP_NAME.'</strong><nav><a href="?">Home</a><a href="?page=compose">Send Email</a><a href="?page=messages">SMS / WhatsApp</a><a href="?page=contacts">Contacts</a><a href="?page=groups">Groups</a><a href="?page=templates">Templates</a><a href="?page=drafts">Saved Drafts</a><a href="?page=history">Sent / History</a>';
+        if (is_admin()) echo '<a href="?page=users">Users</a><a href="?page=identity_users">CT400 Accounts</a><a href="?page=messaging_settings">Messaging Settings</a><a href="?page=domains">Domains</a><a href="?page=senders">Senders</a><a href="?page=compliance">Compliance</a><a href="?page=audit">Audit</a>';
         echo '<a href="?page=logout">Log out</a></nav><span style="margin-left:auto">'.h($_SESSION['display_name'] ?? '').'</span></header>';
     }
     echo '<main>';
@@ -217,6 +240,42 @@ CSS;
 function layout_end(): void { echo '</main></body></html>'; }
 
 $page=$_GET['page'] ?? 'home';
+
+// Broker routes verify their own portal/client authentication. A backend token
+// request must never inherit a local login or redirect to the browser login form.
+bm_request_diagnostic('broker_dispatch');
+bm_portal_sso_handle($db, $page);
+
+// Re-read access rights without changing account rows or passwords.
+$portalSessionRejected=false;
+if (logged_in()) {
+    bm_request_diagnostic('session_validation_start');
+    $sessionUser=user($db,(int)$_SESSION['user_id']);
+    if (!$sessionUser || !(int)$sessionUser['active'] || !bm_identity_validate_session($db)) {
+        bm_request_diagnostic('session_validation_failed');
+        $portalSessionRejected=($_SESSION['authentication_method'] ?? '')==='ct400_portal';
+        $_SESSION=[];
+        session_regenerate_id(true);
+        // Public opt-outs and the login form must still work with an expired account session.
+        if (!in_array($page,['unsubscribe','login'],true)) redirect('?page=login');
+    } else {
+        $_SESSION['is_admin']=(bool)$sessionUser['is_admin'];
+        $_SESSION['display_name']=$sessionUser['display_name'];
+        bm_request_diagnostic('session_validation_complete');
+    }
+}
+
+$autoLoginReason='portal_session_rejected';
+$autoLoginEligible=!$portalSessionRejected && bm_identity_should_auto_login($page, $autoLoginReason);
+bm_request_diagnostic('auto_login_gate', $autoLoginReason);
+if ($autoLoginEligible) {
+    $portalAccount=bm_identity_try_portal_login($db);
+    if ($portalAccount) {
+        bm_identity_start_session($portalAccount, 'ct400_portal');
+        audit($db, 'login');
+    }
+    bm_request_diagnostic('auto_login_complete', $portalAccount ? 'login_established' : 'login_unavailable');
+}
 
 // Public unsubscribe endpoint. No login required.
 if ($page==='unsubscribe') {
@@ -238,19 +297,57 @@ if ($page==='unsubscribe') {
 if ($page==='login') {
     if (logged_in()) redirect('?');
     if ($_SERVER['REQUEST_METHOD']==='POST') {
+        if (($_POST['login_method'] ?? '')==='portal') {
+            check_csrf();
+            $portalAccount=bm_identity_try_portal_login($db);
+            if ($portalAccount) {
+                bm_identity_start_session($portalAccount, 'ct400_portal');
+                audit($db, 'login'); redirect('?');
+            }
+            flash('Sign in to the work portal using a linked account, then try work sign-in again. Your local login is still available.', 'error');
+            redirect('?page=login');
+        }
         check_csrf(); $username=trim($_POST['username'] ?? ''); $password=$_POST['password'] ?? ''; $addr=ip();
         $s=$db->prepare("SELECT COUNT(*) FROM login_attempts WHERE username=? AND ip_address=? AND success=0 AND created_at >= datetime('now','-15 minutes')"); $s->execute([$username,$addr]);
         if ((int)$s->fetchColumn()>=8) { flash('Too many failed attempts. Try again later.','error'); redirect('?page=login'); }
-        $s=$db->prepare('SELECT * FROM users WHERE username=? AND active=1'); $s->execute([$username]); $u=$s->fetch();
-        $ok=$u && password_verify($password,$u['password_hash']);
+        $method=($_POST['login_method'] ?? 'local')==='ct400'?'ct400':'local';
+        if ($method==='ct400') {
+            try { $u=bm_identity_try_login($db,$username,$password,(string)($_POST['code'] ?? '')); }
+            catch (Throwable $e) { $u=null; }
+            $ok=(bool)$u;
+        } else {
+            $s=$db->prepare('SELECT * FROM users WHERE username=? AND active=1'); $s->execute([$username]); $u=$s->fetch();
+            $ok=$u && password_verify($password,$u['password_hash']);
+        }
         $a=$db->prepare('INSERT INTO login_attempts(username,ip_address,success) VALUES(?,?,?)'); $a->execute([$username,$addr,$ok?1:0]);
-        if ($ok) { session_regenerate_id(true); $_SESSION['user_id']=(int)$u['id']; $_SESSION['display_name']=$u['display_name']; $_SESSION['is_admin']=(bool)$u['is_admin']; audit($db,'login'); redirect('?'); }
+        if ($ok) {
+            bm_identity_start_session($u, $method);
+            audit($db,'login'); redirect('?');
+        }
         flash('Login failed.','error');
     }
-    layout_start('Login'); echo '<div class="card" style="max-width:520px;margin:70px auto"><h1>'.APP_NAME.'</h1><form method="post"><input type="hidden" name="csrf" value="'.csrf().'"><label>Username</label><input name="username" required autofocus><label>Password</label><input type="password" name="password" required><p><button>Log in</button></p></form></div>'; layout_end(); exit;
+    layout_start('Login'); echo '<div class="card" style="max-width:520px;margin:70px auto"><h1>'.APP_NAME.'</h1><form method="post"><input type="hidden" name="csrf" value="'.csrf().'">';
+    if (bm_integration_config()['identity']['enabled']) echo '<label>Account</label><select name="login_method"><option value="local">Existing Bulk Mail account</option><option value="ct400">Linked CT400 work account</option></select>';
+    echo '<label>Username</label><input name="username" autocomplete="username" required autofocus><label>Password</label><input type="password" name="password" autocomplete="current-password" required>';
+    if (bm_integration_config()['identity']['enabled']) echo '<label>CT400 verification code (if required)</label><input name="code" inputmode="numeric" autocomplete="one-time-code"><p class="small">Your existing Bulk Mail account continues to work. Work accounts must first be linked by an administrator.</p>';
+    echo '<p><button>Log in</button></p></form>';
+    $identityConfig=bm_identity_config();
+    if (($identityConfig['enabled'] ?? false)===true && ($identityConfig['auto_login'] ?? false)===true) {
+        echo '<hr><form method="post"><input type="hidden" name="csrf" value="'.csrf().'"><input type="hidden" name="login_method" value="portal"><button class="secondary">Sign in with work portal</button><p class="small">Use the account already signed in at your work portal. Your existing Bulk Mail password still works above.</p></form>';
+    }
+    echo '</div>'; layout_end(); exit;
 }
-if ($page==='logout') { if (logged_in()) audit($db,'logout'); session_destroy(); redirect('?page=login'); }
+if ($page==='logout') {
+    if (logged_in()) audit($db,'logout');
+    $_SESSION=[]; session_regenerate_id(true);
+    $_SESSION['portal_auto_login_suppressed']=true;
+    redirect('?page=login');
+}
 require_login();
+
+bm_identity_handle($db,$page);
+require_once __DIR__.'/bulkmail-messaging.php';
+bm_messaging_handle($db,$page);
 
 require_once __DIR__.'/bulkmail-draft.php';
 require_once __DIR__.'/bulkmail-reliability.php';

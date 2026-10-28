@@ -1,0 +1,19 @@
+[Unit]
+Description=Validate and transactionally deploy the published certificate for this MX
+After=network-online.target xeams.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 -B /opt/grange-certificate-renewal/mx_consumer.py --config /etc/grange-certificate-renewal/consumer.json --apply
+TimeoutStartSec=480s
+TimeoutStopSec=300s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/Xeams/config /opt/Xeams/letsEncrypt /var/lib/grange-certificate-renewal/mx /var/backups/grange-mx-tls-automatic /run
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK

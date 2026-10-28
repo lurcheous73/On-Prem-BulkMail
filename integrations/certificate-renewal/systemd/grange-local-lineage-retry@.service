@@ -1,0 +1,12 @@
+[Unit]
+Description=Retry a pending certificate deployment or failed renewal for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/usr/bin/python3 -B /opt/grange-certificate-renewal/local_lineage.py --config /etc/grange-certificate-renewal/lineages/%i.json --retry-only
+TimeoutStartSec=1h
+
