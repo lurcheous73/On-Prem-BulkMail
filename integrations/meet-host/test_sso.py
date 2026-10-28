@@ -222,7 +222,8 @@ class ActualHandlerTests(ClientTests):
             db.execute("INSERT INTO meetings(title,room,mode,owner,created_at) VALUES('Fixture room','fixture-room','normal','julie',?)", [self.now])
         self.before_hosts = copy.deepcopy(self.ns["HOSTS"])
         handler = sso.wrap_handler(self.ns["Handler"], self.ns, self.path, self.exchange, lambda: self.now, self.audit)
-        handler.log_message = lambda *args: None
+        self.messages = []
+        handler.log_message = lambda handler_self, fmt, *args: self.messages.append(fmt % args)
         self.server = HTTPServer(("127.0.0.1", 0), handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True); self.thread.start()
         self.http_client = handler.portal_client
@@ -260,6 +261,28 @@ class ActualHandlerTests(ClientTests):
         self.assertEqual(status, 200)
         self.assertIn("Julie Foster", body)
         for name, profile in self.before_hosts.items(): self.assertEqual(self.ns["HOSTS"][name], profile)
+
+    def test_http_diagnostics_identify_missing_portal_without_secrets(self):
+        params, cookie = self.http_flow()
+        self.request(sso.CALLBACK_PATH + "?" + urllib.parse.urlencode({"state": params["state"][0], "error": "login_required"}), cookie)
+        logs = "\n".join(self.messages)
+        self.assertIn('"stage":"start","reason":"redirect"', logs)
+        self.assertIn('"stage":"callback","reason":"work_login_required"', logs)
+        for secret in (params["state"][0], cookie.split("=", 1)[1], self.cfg["client_secret"]):
+            self.assertNotIn(secret, logs)
+
+    def test_http_diagnostics_discard_unexpected_exception_content(self):
+        secret = "private-response-token-that-must-not-be-logged"
+        def failing_exchange(*args):
+            raise sso.SSOError(secret)
+        self.http_client.exchange = failing_exchange
+        params, cookie = self.http_flow()
+        code = "c" * 43
+        self.request(sso.CALLBACK_PATH + "?" + urllib.parse.urlencode({"state": params["state"][0], "code": code}), cookie)
+        logs = "\n".join(self.messages)
+        self.assertIn('"reason":"internal_error"', logs)
+        for value in (secret, code, params["state"][0], self.cfg["client_secret"]):
+            self.assertNotIn(value, logs)
 
     def test_http_missing_portal_login_falls_back_without_redirect_loop(self):
         params, cookie = self.http_flow()

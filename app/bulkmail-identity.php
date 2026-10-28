@@ -2,7 +2,35 @@
 declare(strict_types=1);
 
 /** Additive ONLYOFFICE Workspace identity links. No existing users are rewritten. */
-final class BMIdentityException extends RuntimeException {}
+final class BMIdentityException extends RuntimeException {
+    public function __construct(string $message, public readonly string $reason = 'verification_failed',
+        public readonly int $httpStatus = 0, public readonly int $curlCode = 0, public readonly ?int $elapsedMs = null) {
+        parent::__construct($message);
+    }
+}
+
+/** Fixed operational classes only: never emit a credential, identity, body or exception message. */
+function bm_identity_portal_diagnostic(string $outcome, int $httpStatus = 0, int $curlCode = 0,
+    ?int $elapsedMs = null, string $stage = 'identity_outcome'): void {
+    $outcomes = ['disabled','auto_login_disabled','cookie_missing','cookie_invalid','issuer_invalid',
+        'https_required','request_invalid','curl_unavailable','transport_failed','http_rejected',
+        'json_invalid','response_invalid','profile_invalid_id','profile_inactive','profile_unactivated',
+        'profile_visitor','profile_incomplete','link_unavailable','verified','verification_failed','unexpected_failure',
+        'api_request','api_result'];
+    $dest = $_SERVER['HTTP_SEC_FETCH_DEST'] ?? null;
+    $site = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? null;
+    error_log('BulkMail portal identity '.json_encode([
+        'outcome'=>in_array($outcome, $outcomes, true) ? $outcome : 'verification_failed',
+        'stage'=>in_array($stage, ['identity_outcome','request_start','request_complete'], true) ? $stage : 'identity_outcome',
+        'cookie_present'=>array_key_exists('asc_auth_key', $_COOKIE),
+        'cookie_valid_format'=>bm_identity_portal_cookie() !== '',
+        'http_status'=>$httpStatus >= 100 && $httpStatus <= 599 ? $httpStatus : 0,
+        'curl_code'=>$curlCode >= 0 && $curlCode <= 999 ? $curlCode : 0,
+        'elapsed_ms'=>$elapsedMs === null ? null : min(300000,max(0,$elapsedMs)),
+        'fetch_dest'=>$dest === null ? 'missing' : (in_array($dest,['document','iframe','empty'],true) ? $dest : 'other'),
+        'fetch_site'=>$site === null ? 'missing' : (in_array($site,['same-origin','same-site','cross-site','none'],true) ? $site : 'other'),
+    ], JSON_THROW_ON_ERROR));
+}
 
 function bm_identity_schema(PDO $db): void {
     $db->exec("CREATE TABLE IF NOT EXISTS user_identity_links (
@@ -55,7 +83,7 @@ function bm_identity_issuer(array $config): string {
         || !in_array(strtolower((string)($parts['scheme'] ?? '')), ['http','https'], true)
         || (strtolower($parts['scheme']) !== 'https' && ($config['allow_http'] ?? false) !== true)
         || preg_match('/[\x00-\x20\x7f]/', $url)) {
-        throw new BMIdentityException('CT400 needs a valid HTTPS portal URL in the integration configuration.');
+        throw new BMIdentityException('CT400 needs a valid HTTPS portal URL in the integration configuration.', 'issuer_invalid');
     }
     // Pin identities to the configured portal as well as its stable GUID.
     return strtolower($parts['scheme']).'://'.strtolower($parts['host'])
@@ -65,16 +93,16 @@ function bm_identity_issuer(array $config): string {
 /** Test transport is injected only by code; never selected by request parameters. */
 function bm_identity_request(array $config, string $method, string $path, ?array $body = null, string $token = '', ?callable $transport = null): array {
     $base = bm_identity_issuer($config);
-    if (empty($config['enabled'])) throw new BMIdentityException('CT400 integration is disabled.');
+    if (empty($config['enabled'])) throw new BMIdentityException('CT400 integration is disabled.', 'disabled');
     if (!str_starts_with($path, '/api/2.0/') || preg_match('/[\r\n]/', $token)) {
-        throw new BMIdentityException('Invalid CT400 request configuration.');
+        throw new BMIdentityException('Invalid CT400 request configuration.', 'request_invalid');
     }
     if ($transport) {
         $response = $transport($method, $path, $body, $token);
-        if (!is_array($response)) throw new BMIdentityException('CT400 returned an invalid response.');
+        if (!is_array($response)) throw new BMIdentityException('CT400 returned an invalid response.', 'response_invalid');
         return $response;
     }
-    if (!function_exists('curl_init')) throw new BMIdentityException('The server needs PHP cURL for CT400 integration.');
+    if (!function_exists('curl_init')) throw new BMIdentityException('The server needs PHP cURL for CT400 integration.', 'curl_unavailable');
     $handle = curl_init($base.$path);
     $headers = ['Accept: application/json'];
     if ($token !== '') $headers[] = 'Authorization: '.$token;
@@ -92,19 +120,26 @@ function bm_identity_request(array $config, string $method, string $path, ?array
         },
     ]);
     if ($body !== null) curl_setopt($handle, CURLOPT_POSTFIELDS, json_encode($body, JSON_THROW_ON_ERROR));
+    $portalSelf = $method === 'GET' && $path === '/api/2.0/people/@self.json';
+    if ($portalSelf) bm_identity_portal_diagnostic('api_request',0,0,null,'request_start');
+    $started = hrtime(true);
     $ok = curl_exec($handle);
     $status = (int)curl_getinfo($handle, CURLINFO_HTTP_CODE);
+    $curlCode = curl_errno($handle);
+    $elapsedMs = (int)round((hrtime(true)-$started)/1000000);
     curl_close($handle);
+    if ($portalSelf) bm_identity_portal_diagnostic('api_result',$status,$curlCode,$elapsedMs,'request_complete');
     if ($ok === false || $status<200 || $status>=300) {
         // Do not expose a remote body: it may echo credentials or tokens.
-        throw new BMIdentityException('CT400 could not verify this request. Check the account and portal connection.');
+        throw new BMIdentityException('CT400 could not verify this request. Check the account and portal connection.',
+            $ok === false ? 'transport_failed' : 'http_rejected', $status, $curlCode, $elapsedMs);
     }
     try { $payload = json_decode($buffer, true, 64, JSON_THROW_ON_ERROR); }
-    catch (JsonException $e) { throw new BMIdentityException('CT400 returned an invalid response.'); }
+    catch (JsonException $e) { throw new BMIdentityException('CT400 returned an invalid response.', 'json_invalid', $status, 0, $elapsedMs); }
     if (!is_array($payload) || !array_key_exists('response', $payload)
         || (isset($payload['status']) && (int)$payload['status'] !== 0)
         || !is_array($payload['response'])) {
-        throw new BMIdentityException('CT400 did not return a verified result.');
+        throw new BMIdentityException('CT400 did not return a verified result.', 'response_invalid', $status, 0, $elapsedMs);
     }
     return $payload['response'];
 }
@@ -113,7 +148,7 @@ function bm_identity_guid(string $value): string {
     $value = strtolower(trim($value));
     if (!preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/D', $value)
         || $value === '00000000-0000-0000-0000-000000000000') {
-        throw new BMIdentityException('CT400 did not return a valid user ID.');
+        throw new BMIdentityException('CT400 did not return a valid user ID.', 'profile_invalid_id');
     }
     return $value;
 }
@@ -125,13 +160,14 @@ function bm_identity_profile(array $raw): array {
     $active = ($raw['status'] ?? null) === 1 || ($raw['status'] ?? null) === '1' || ($raw['status'] ?? null) === 'Active';
     $activated = ($raw['activationstatus'] ?? null) === 1 || ($raw['activationstatus'] ?? null) === '1' || ($raw['activationstatus'] ?? null) === 'Activated';
     if (!$active || !$activated || !empty($raw['isvisitor'])) {
-        throw new BMIdentityException('Only an active, activated CT400 member can be linked or sign in.');
+        throw new BMIdentityException('Only an active, activated CT400 member can be linked or sign in.',
+            !$active ? 'profile_inactive' : (!$activated ? 'profile_unactivated' : 'profile_visitor'));
     }
     $username = trim((string)($raw['username'] ?? ''));
     $email = trim((string)($raw['email'] ?? ''));
     $display = trim((string)($raw['displayname'] ?? (($raw['firstname'] ?? '').' '.($raw['lastname'] ?? ''))));
     if ($username === '' || strlen($username)>254 || strlen($email)>254 || strlen($display)>254) {
-        throw new BMIdentityException('CT400 returned an incomplete user profile.');
+        throw new BMIdentityException('CT400 returned an incomplete user profile.', 'profile_incomplete');
     }
     return ['id'=>$id, 'username'=>$username, 'email'=>$email, 'display_name'=>$display ?: $username];
 }
@@ -163,13 +199,14 @@ function bm_identity_portal_cookie(): string {
 
 /** Validate the current portal identity over HTTPS, never from a URL/form claim. */
 function bm_identity_portal_profile(array $cfg, ?callable $transport = null): array {
-    if (($cfg['enabled'] ?? false) !== true) throw new BMIdentityException('CT400 integration is disabled.');
+    if (($cfg['enabled'] ?? false) !== true) throw new BMIdentityException('CT400 integration is disabled.', 'disabled');
     $issuer = bm_identity_issuer($cfg);
     if (strtolower((string)parse_url($issuer, PHP_URL_SCHEME)) !== 'https') {
-        throw new BMIdentityException('Work portal sign-in requires an HTTPS portal connection.');
+        throw new BMIdentityException('Work portal sign-in requires an HTTPS portal connection.', 'https_required');
     }
     $token = bm_identity_portal_cookie();
-    if ($token === '') throw new BMIdentityException('Sign in to the work portal before using its directory.');
+    if ($token === '') throw new BMIdentityException('Sign in to the work portal before using its directory.',
+        array_key_exists('asc_auth_key', $_COOKIE) ? 'cookie_invalid' : 'cookie_missing');
     return bm_identity_profile(bm_identity_request($cfg, 'GET', '/api/2.0/people/@self.json', null, $token, $transport));
 }
 
@@ -190,11 +227,21 @@ function bm_identity_linked_account(PDO $db, array $profile, string $issuer): ?a
 /** Pure verification for BulkMail and the portal broker: no provisioning/session writes. */
 function bm_identity_try_portal_login(PDO $db, ?callable $transport = null): ?array {
     $cfg = bm_identity_config();
-    if (($cfg['enabled'] ?? false) !== true || ($cfg['auto_login'] ?? false) !== true || bm_identity_portal_cookie() === '') return null;
+    if (($cfg['enabled'] ?? false) !== true) { bm_identity_portal_diagnostic('disabled'); return null; }
+    if (($cfg['auto_login'] ?? false) !== true) { bm_identity_portal_diagnostic('auto_login_disabled'); return null; }
+    if (bm_identity_portal_cookie() === '') {
+        bm_identity_portal_diagnostic(array_key_exists('asc_auth_key', $_COOKIE) ? 'cookie_invalid' : 'cookie_missing');
+        return null;
+    }
     try {
         $profile = bm_identity_portal_profile($cfg, $transport);
-        return bm_identity_linked_account($db, $profile, bm_identity_issuer($cfg));
-    } catch (Throwable $e) { return null; }
+        $account = bm_identity_linked_account($db, $profile, bm_identity_issuer($cfg));
+        bm_identity_portal_diagnostic($account ? 'verified' : 'link_unavailable');
+        return $account;
+    } catch (BMIdentityException $e) {
+        bm_identity_portal_diagnostic($e->reason, $e->httpStatus, $e->curlCode, $e->elapsedMs);
+        return null;
+    } catch (Throwable $e) { bm_identity_portal_diagnostic('unexpected_failure'); return null; }
 }
 
 /** Automatic sign-in never authenticates a POST or replaces a current local session. */

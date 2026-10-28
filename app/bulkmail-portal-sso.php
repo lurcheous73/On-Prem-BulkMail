@@ -8,6 +8,18 @@ final class BMPortalSSOException extends RuntimeException {
     }
 }
 
+/** Fixed operational outcomes only; never log request values or credentials. */
+function bm_portal_sso_diagnostic(string $route, string $outcome, int $status): void {
+    $routes = ['portal_sso_authorize', 'portal_sso_token'];
+    $outcomes = ['received', 'authorized', 'login_required', 'exchanged', 'invalid_request',
+        'invalid_client', 'invalid_grant', 'access_denied', 'temporarily_unavailable'];
+    error_log('BulkMail portal broker '.json_encode([
+        'route'=>in_array($route, $routes, true) ? $route : 'unknown',
+        'outcome'=>in_array($outcome, $outcomes, true) ? $outcome : 'temporarily_unavailable',
+        'status'=>$status >= 100 && $status <= 599 ? $status : 500,
+    ], JSON_THROW_ON_ERROR));
+}
+
 function bm_portal_sso_schema(PDO $db): void {
     $db->exec("CREATE TABLE IF NOT EXISTS portal_sso_codes (
         code_hash TEXT PRIMARY KEY,
@@ -145,6 +157,7 @@ function bm_portal_sso_json(int $status, array $body): never {
 
 function bm_portal_sso_handle(PDO $db, string $page): void {
     if (!in_array($page, ['portal_sso_authorize', 'portal_sso_token'], true)) return;
+    bm_portal_sso_diagnostic($page, 'received', 200);
     header('Cache-Control: no-store');
     header('Pragma: no-cache');
     header('Referrer-Policy: no-referrer');
@@ -157,6 +170,7 @@ function bm_portal_sso_handle(PDO $db, string $page): void {
             $params = ['state'=>$request['state']];
             if (!$account) $params['error'] = 'login_required';
             else $params['code'] = bm_portal_sso_issue($db, $request, $account);
+            bm_portal_sso_diagnostic($page, $account ? 'authorized' : 'login_required', 302);
             $target = $request['client']['redirect_uri'];
             header('Location: '.$target.(str_contains($target, '?') ? '&' : '?').http_build_query($params, '', '&', PHP_QUERY_RFC3986), true, 302);
             exit;
@@ -172,10 +186,14 @@ function bm_portal_sso_handle(PDO $db, string $page): void {
             catch (JsonException $error) { throw new BMPortalSSOException('invalid_request'); }
             if (!is_array($input)) throw new BMPortalSSOException('invalid_request');
         } else throw new BMPortalSSOException('invalid_request', 415);
-        bm_portal_sso_json(200, bm_portal_sso_exchange($db, $input));
+        $result = bm_portal_sso_exchange($db, $input);
+        bm_portal_sso_diagnostic($page, 'exchanged', 200);
+        bm_portal_sso_json(200, $result);
     } catch (BMPortalSSOException $error) {
+        bm_portal_sso_diagnostic($page, $error->errorCode, $error->httpStatus);
         bm_portal_sso_json($error->httpStatus, ['error'=>$error->errorCode]);
     } catch (Throwable $error) {
+        bm_portal_sso_diagnostic($page, 'temporarily_unavailable', 503);
         bm_portal_sso_json(503, ['error'=>'temporarily_unavailable']);
     }
 }

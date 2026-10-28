@@ -75,4 +75,17 @@ sso_reject('Changing the configured portal invalidates earlier codes', fn()=>bm_
 sso_reject('A local-password account alone is not portal authentication', fn()=>bm_portal_sso_issue($db,$request,['id'=>2],$at), 'access_denied');
 sso_check('All original user fields and password hashes remain identical', $db->query('SELECT * FROM users ORDER BY id')->fetchAll()===$before);
 sso_check('Identity exchanges never queue email or grant administrator privileges', (int)$db->query('SELECT COUNT(*) FROM mailings')->fetchColumn()===0 && count($before)===1);
+$diagnosticLog=tempnam(sys_get_temp_dir(), 'bulkmail-sso-diagnostic-');
+$previousLog=ini_get('error_log');
+try {
+    ini_set('error_log', $diagnosticLog);
+    bm_portal_sso_diagnostic('portal_sso_authorize', 'login_required', 302);
+    bm_portal_sso_diagnostic('secret-route-'.$secret, 'secret-outcome-'.$verifier, 9999);
+    $diagnostics=file_get_contents($diagnosticLog);
+    sso_check('Broker diagnostics expose only fixed request outcomes', str_contains($diagnostics, '"outcome":"login_required"') && str_contains($diagnostics, '"status":302'));
+    sso_check('Unknown diagnostics cannot disclose credentials or request fields', !str_contains($diagnostics, $secret) && !str_contains($diagnostics, $verifier) && str_contains($diagnostics, '"route":"unknown"') && str_contains($diagnostics, '"status":500'));
+} finally {
+    ini_set('error_log', $previousLog);
+    unlink($diagnosticLog);
+}
 echo 'PASS '.$checks.' portal SSO exchange checks; synthetic data only.'.PHP_EOL;

@@ -50,13 +50,17 @@ class Workspace(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         token = self.headers.get("Authorization", "")
         api_calls.append((self.command, self.path, token))
-        if self.path == "/api/2.0/people/@self.json" and token in ["fixture-portal-peter", "fixture-portal-clone"]:
+        if self.path == "/api/2.0/people/@self.json" and token in ["fixture-portal-peter", "fixture-portal-clone", "fixture-native+/="]:
             status, value = 200, profile(token.endswith("clone"))
         elif self.path == "/api/2.0/people/peter.work.json" and token == "fixture-portal-peter":
             status, value = 200, profile()
         else:
             status, value = 401, {}
         body = json.dumps({"status": 0, "response": value}).encode()
+        if token == "fixture-json-invalid":
+            status, body = 200, b"fixture-private-response-body is not JSON"
+        elif token == "fixture-envelope-invalid":
+            status, body = 200, json.dumps({"status": 1, "response": profile(), "error": "fixture-private-response-body"}).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -195,6 +199,19 @@ with tempfile.TemporaryDirectory(prefix="bulkmail-portal-http-") as temp:
         check("Portal self identity was checked over trusted local HTTPS", api_calls[-1] == ("GET", "/api/2.0/people/@self.json", "fixture-portal-peter"))
         audit = db.execute("SELECT * FROM audit_identity ORDER BY audit_id DESC LIMIT 1").fetchone()
         check("Automatic sign-in audit records its portal identity source", audit["actor_user_id"] == 2 and audit["authentication_method"] == "ct400_portal" and audit["authenticated_ct400_id"] == PETER_ID)
+        for wire_value in ["fixture-native+/=", "fixture-native%2B%2F%3D"]:
+            native = browser()
+            portal_cookie(native, wire_value)
+            native_page = get(native, "?page=history")
+            check("Native cookie characters survive PHP parsing: " + wire_value,
+                  "Peter Arnold" in native_page and "Log out" in native_page
+                  and api_calls[-1] == ("GET", "/api/2.0/people/@self.json", "fixture-native+/="))
+        for token in ["fixture-json-invalid", "fixture-envelope-invalid"]:
+            refused = browser()
+            portal_cookie(refused, token)
+            refused_page = get(refused, "?page=history")
+            check("Malformed real API responses remain unauthenticated: " + token,
+                  'name="password"' in refused_page and "fixture-private-response-body" not in refused_page)
         no_post_login = browser(False)
         portal_cookie(no_post_login, "fixture-portal-peter")
         n = len(api_calls)
@@ -269,6 +286,21 @@ with tempfile.TemporaryDirectory(prefix="bulkmail-portal-http-") as temp:
         check("Sessions never store raw portal cookies or broker client secrets", "fixture-portal-peter" not in session_data and client_secret not in session_data)
         check("Authentication workflows create no mail or messaging campaigns", db.execute("SELECT COUNT(*) FROM mailings").fetchone()[0] == 0 and db.execute("SELECT COUNT(*) FROM message_campaigns").fetchone()[0] == 0)
         check("Database integrity and existing contact ownership remain valid", db.execute("PRAGMA integrity_check").fetchone()[0] == "ok" and not db.execute("PRAGMA foreign_key_check").fetchall() and db.execute("SELECT owner_user_id FROM contacts").fetchone()[0] == 2)
+        log.flush()
+        log.seek(0)
+        identity_logs = [line.split("BulkMail portal identity ", 1)[1] for line in log.read().splitlines() if "BulkMail portal identity " in line]
+        events = [json.loads(line) for line in identity_logs]
+        check("Real HTTP diagnostics distinguish absent cookies, portal refusal, malformed JSON and envelope rejection",
+              any(e["outcome"] == "cookie_missing" and not e["cookie_present"] for e in events)
+              and any(e["outcome"] == "http_rejected" and e["http_status"] == 401 for e in events)
+              and any(e["outcome"] == "json_invalid" and e["http_status"] == 200 for e in events)
+              and any(e["outcome"] == "response_invalid" and e["http_status"] == 200 for e in events)
+              and any(e["outcome"] == "verified" for e in events))
+        check("Real HTTP identity diagnostics contain no credentials, hashes, profile identities or remote bodies",
+              all(private not in "\n".join(identity_logs) for private in
+                  ["fixture-portal-peter", "fixture-native+/=", "fixture-json-invalid", "fixture-envelope-invalid",
+                   "fixture-private-response-body", hashlib.sha256(b"fixture-portal-peter").hexdigest(),
+                   PETER_ID, "peter@example.invalid", "peter.work", password, client_secret, issuer]))
         print(f"PASS {len(passed)} portal HTTP checks; synthetic data and local HTTPS only.", flush=True)
     except Exception:
         log.flush()

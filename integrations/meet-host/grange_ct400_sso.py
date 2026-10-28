@@ -30,6 +30,13 @@ FLOW_SECONDS = 120
 MAX_PENDING = 1000
 TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43}$")
 GUID_PATTERN = re.compile(r"^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$")
+DIAGNOSTIC_REASONS = frozenset({
+    "received", "redirect", "session_created", "existing_session", "internal_error",
+    "work_login_required", "work_login_unavailable", "work_login_busy",
+    "invalid_login_state", "expired_login_state", "invalid_login_code",
+    "broker_redirect_rejected", "broker_unavailable", "invalid_broker_response",
+    "invalid_identity", "host_access_not_configured", "audit_unavailable",
+})
 
 
 class SSOError(Exception):
@@ -248,6 +255,15 @@ def wrap_handler(base_handler, context, config_path=CONFIG_PATH, exchange=None, 
     class CT400Handler(base_handler):
         portal_client = client
 
+        def _portal_diagnostic(self, stage, reason):
+            # Do not interpolate an exception, URL, cookie, identity, or remote
+            # body into the journal. Request logging already removes SSO query
+            # strings; these fixed outcomes reveal where a browser stopped.
+            self.log_message("CT400 SSO %s", json.dumps({
+                "stage": stage if stage in ("start", "callback") else "unknown",
+                "reason": reason if reason in DIAGNOSTIC_REASONS else "internal_error",
+            }, separators=(",", ":")))
+
         def _portal_redirect(self, location, cookies=()):
             self.send_response(302)
             self.send_header("Location", location)
@@ -289,26 +305,32 @@ def wrap_handler(base_handler, context, config_path=CONFIG_PATH, exchange=None, 
         def do_GET(self):
             parsed = urllib.parse.urlsplit(self.path)
             if parsed.path == CALLBACK_PATH:
+                self._portal_diagnostic("callback", "received")
                 cookies = [_set_cookie(PENDING_COOKIE, "", 0)]
                 # A local/portal login established while the browser was away
                 # takes precedence over this delayed authorization callback.
                 if self.session():
                     client.cancel(_cookie(self.headers, PENDING_COOKIE))
+                    self._portal_diagnostic("callback", "existing_session")
                     self._portal_redirect("/host/", cookies)
                     return
                 try:
                     cookies.append(client.finish(parsed.query, _cookie(self.headers, PENDING_COOKIE)))
+                    self._portal_diagnostic("callback", "session_created")
                     self._portal_redirect("/host/", cookies)
                 except Exception as error:
                     # Fixed message only. No code, state, cookie or broker body is logged.
+                    self._portal_diagnostic("callback", str(error) if isinstance(error, SSOError) else "internal_error")
                     reason = "required" if isinstance(error, SSOError) and str(error) == "work_login_required" else "unavailable"
                     self._portal_redirect("/host/login?work=" + reason, cookies)
                 return
             if parsed.path == START_PATH:
                 try:
                     target, cookie = client.begin()
+                    self._portal_diagnostic("start", "redirect")
                     self._portal_redirect(target, [cookie])
-                except SSOError:
+                except SSOError as error:
+                    self._portal_diagnostic("start", str(error))
                     self.login("Work sign-in is temporarily unavailable. Your existing host login still works.")
                 return
             if parsed.path == "/host/login":
@@ -324,8 +346,10 @@ def wrap_handler(base_handler, context, config_path=CONFIG_PATH, exchange=None, 
             if self.path in ("/host", "/host/") and not self.creator() and client.config():
                 try:
                     target, cookie = client.begin()
+                    self._portal_diagnostic("start", "redirect")
                     self._portal_redirect(target, [cookie])
-                except SSOError:
+                except SSOError as error:
+                    self._portal_diagnostic("start", str(error))
                     self.login("Work sign-in is temporarily unavailable. Your existing host login still works.")
                 return
             return super().do_GET()
