@@ -311,7 +311,10 @@ connection/delivery and CT400 integration disabled. The subsequent work portal
 extension adds automatic verified sign-in and the narrowly configured meeting
 identity exchange described in the [CT400 account guide](CT400-ACCOUNTS.md).
 See the [initial deployment verification record](../tests/verification/messaging-upgrade-20261028.json)
-and the subsequent release records for the actual enabled state. No real
+and the [CT400 and meeting activation record](../tests/verification/ct400-work-meet-20261028.json)
+for the actual enabled state. CT400 sign-in is now enabled for seven verified
+members; the SMS and WhatsApp delivery switches remain disabled pending the
+handset and account pairing. No real
 messages are sent by the build or deployment tests.
 
 Run the PHP/Python suites from the repository root:

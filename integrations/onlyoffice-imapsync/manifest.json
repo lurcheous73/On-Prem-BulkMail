@@ -1,0 +1,37 @@
+{
+  "revision": 2,
+  "status": "independently-reviewed",
+  "upstream_repository": "https://github.com/ONLYOFFICE/Mail",
+  "upstream_commit": "bce218db218bff90a8583e9f01dcc1e5464f8bc4",
+  "production_image": "onlyoffice/communityserver:12.8.0.1971",
+  "production_service_sha256": "9afd281bad21cece51f3ebbe72e226dbef218af6d740fbf763b96ce20a404e8b",
+  "production_pdb_sha256": "3a763f3a6d6ef5e94b656ae32c82109eee61c37ec8e0004aba3c5964e00db2c8",
+  "unchanged_core_sha256": "4be22c0e9f7a0dff67fb8a8631949213f3511897d9fbe170058371ce3751710e",
+  "original_source_sha256": "a3e99942b36b11ee6203ddb8de72d7b25ee4876a3995c6aef3d5295444a5f87c",
+  "dotnet_sdk": "8.0.427",
+  "target_framework": "net8.0",
+  "production_runtime": "8.0.26",
+  "checks_passed": 37,
+  "network_operations_in_tests": 0,
+  "imap_tasks_started_in_tests": 0,
+  "assembly_references_identical": true,
+  "assembly_reference_count": 37,
+  "deployment_files": {
+    "ASC.Mail.ImapSync.Service.dll": {
+      "bytes": 129536,
+      "sha256": "cc685e959b77334f221c5167211de9fbea4faec2d856b1f67a20fa17676b6e0b"
+    },
+    "ASC.Mail.ImapSync.Service.pdb": {
+      "bytes": 54704,
+      "sha256": "cd64b8078a5f1ef470f256806c1271ca7e6d62ff5ca20ef6bfd0dcf80bddd468"
+    }
+  },
+  "patched_source_sha256": "bedec37f6929e35ca11243317db44f6c1fd1451123704af02c1b21466b135232",
+  "review": {
+    "result": "GO",
+    "checks_independently_rerun": 37,
+    "source_and_binary_hashes_verified": true,
+    "assembly_references_independently_verified": 37,
+    "semaphore_ordering_reviewed": true
+  }
+}

@@ -17,6 +17,7 @@ This repository builds on the application deployed on 20 October 2026, including
 - SMSGate SMS and Baileys WhatsApp plain-text/link messages, with contact groups and pasted UK mobile numbers.
 - Explicit messaging previews, account-specific channel permissions, opt-outs, delivery history and reconciliation without blind retries.
 - Verified CT400 identity links, optional automatic work portal sign-in and immutable actor/owner audit snapshots; existing local accounts and passwords are retained.
+- A scoped [meeting host adapter](integrations/meet-host/README.md) uses the verified work session for the existing Grange meeting portal, with explicit account mappings and retained local host logins.
 
 ## Source layout
 
@@ -31,6 +32,12 @@ See [deployment instructions](docs/DEPLOYMENT.md). The install.sh script is for 
 For an existing installation, follow the [SMS/WhatsApp upgrade guide](docs/MESSAGING-UPGRADE.md) and use `deployment/upgrade-messaging.sh`. The upgrade is additive: it keeps Peter's existing account, password hash, role, address book and history. Do not import the fresh schema over the live database.
 
 The messaging features require PHP cURL, private server configuration and explicit per-account permissions. Optional services start disabled. SMS needs the Android handset; WhatsApp needs an administrator to link the intended account by QR. The [gateway guide](services/whatsapp-gateway/README.md) documents the pinned Baileys release and isolated Node runtime. The [CT400 account guide](docs/CT400-ACCOUNTS.md) covers verified account links and optional CT400 login.
+
+The Grange deployment enabled seven verified CT400 members on 28 October 2026
+and connected the Canada meeting host portal to the work identity exchange.
+Existing accounts and data were preserved. The [activation record](tests/verification/ct400-work-meet-20261028.json)
+distinguishes the live preservation/HTTPS checks from the remaining first
+staff-browser sign-in check. SMS and WhatsApp still await their device setup.
 
 Messaging currently supports outbound plain text and links. Opt-outs are recorded manually; an inbound inbox, automatic `STOP` processing, WhatsApp media/group-chat delivery and LinkedIn automation are not part of this release.
 

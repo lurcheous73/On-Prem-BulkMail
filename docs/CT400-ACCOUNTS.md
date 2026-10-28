@@ -184,6 +184,32 @@ for existing email queue events reads the owner from the stored mailing record.
 
 ## Verification
 
+### Live activation on 28 October 2026
+
+BulkMail CT300 has seven explicit links for active, activated CT400 members.
+All five original local user rows, including Peter's password and role, were
+preserved exactly. Three additional people received standard accounts. Pending
+and disabled directory members were not activated. The original local
+administrator remains available as a fallback. All 28 pre-existing data tables
+were compared with the private upgrade backup and were unchanged.
+
+The [meeting adapter](../integrations/meet-host/README.md) is enabled on the Canada
+`meet.the-grange.uk/host/` application. It has seven verified subject mappings
+and four additional standard host profiles, while preserving the original host
+password file, meeting rows and existing owner identities. The original local
+administrator keeps its local login. The separate Germany meeting service is
+outside this integration's scope.
+
+Live HTTPS checks and the available browser verified the automatic broker route
+and the fallback when no work session exists. Callback queries are redacted from
+nginx access logs. No authorised staff work session was present in the test
+browser, so a real staff browser sign-in has not yet been observed. Positive
+identity exchanges and cross-account isolation were tested with isolated
+fixtures. See the [activation verification record](../tests/verification/ct400-work-meet-20261028.json)
+for exact source revisions, preservation checks and this remaining limit.
+
+### Isolated regression suites
+
 Run `php tests/test-identity.php`, `python3 tests/identity-http.py`,
 `php tests/identity-portal.php`, `python3 tests/identity-portal-http.py` and
 `php tests/test-portal-sso.php`. They use

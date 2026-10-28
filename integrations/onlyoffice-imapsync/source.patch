@@ -1,0 +1,135 @@
+diff --git a/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs b/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs
+index c171ccd..a5c20b4 100644
+--- a/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs
++++ b/Services/ASC.Mail.ImapSync.Service/MailImapClient.cs
+@@ -1,6 +1,8 @@
+ /*
+  *
+  * (c) Copyright Ascensio System Limited 2010-2020
++ * Modified 2026-10-28: route draft synchronization by mailbox and defer
++ * restoration until that mailbox's Sent state is available.
+  * 
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+@@ -30,6 +32,7 @@ public class MailImapClient : IDisposable
+     private readonly ConcurrentQueue<ImapAction> imapActionsQueue;
+     private readonly ConcurrentQueue<NewMessageFromIMAPData> NewMessageQueue;
+     private readonly List<SimpleImapClient> simpleImapClients;
++    private readonly ConcurrentDictionary<int, byte> deferredDraftRecovery = new();
+     private readonly IServiceProvider clientScope;
+ 
+     private readonly SemaphoreSlim _enginesFactorySemaphore;
+@@ -79,14 +82,19 @@ public class MailImapClient : IDisposable
+                     case MailUserAction.Nothing:
+                         break;
+                     case MailUserAction.SendDraft:
+-                        var draftSimpleImapClients = simpleImapClients.FirstOrDefault(x => x.Folder == FolderType.Draft);
+-                        if (draftSimpleImapClients == null)
++                        var draftSimpleImapClients = simpleImapClients
++                            .Where(x => x.ImapMessagesList != null && x.Folder == FolderType.Draft)
++                            .ToList();
++                        if (draftSimpleImapClients.Count == 0)
+                         {
+                             _log.DebugMailImapClientFromRedisPipeline($"CheckRedis: {RedisKey}: Didn't find IMAP client for draft folder");
+                         }
+                         else
+                         {
+-                            draftSimpleImapClients.ExecuteUserAction(actionFromCache);
++                            foreach (var draftSimpleImapClient in draftSimpleImapClients)
++                            {
++                                draftSimpleImapClient.ExecuteUserAction(actionFromCache);
++                            }
+                         }
+                         break;
+                     case MailUserAction.SetAsRead:
+@@ -539,6 +547,7 @@ public class MailImapClient : IDisposable
+             else
+             {
+                 UpdateDbFolder(simpleImapClient);
++                RetryDraftRecoveryForSentClient(simpleImapClient, UpdateDraftDbFolder);
+             }
+         }
+     }
+@@ -695,27 +704,8 @@ public class MailImapClient : IDisposable
+ 
+             if (workFolderMails.Any())
+             {
+-                //Checking emails in work folder, if it was sent already
+-
+-                var sentFolderIMAPClient = simpleImapClients.FirstOrDefault(x => x.Folder == FolderType.Sent);
+-
+-                if (sentFolderIMAPClient != null)
+-                {
+-                    for (int i = workFolderMails.Count - 1; i >= 0; i--)
+-                    {
+-                        var workFolderMail = workFolderMails[i];
+-
+-                        if (sentFolderIMAPClient.ImapMessagesList.Any(x => x.IMAPMessageId == workFolderMail.MimeMessageId))
+-                        {
+-                            workFolderMails.Remove(workFolderMail);
+-                        }
+-                    }
+-                }
+-                ExecutActionUpdateDrafts(new CashedMailUserAction()
+-                {
+-                    Action = MailUserAction.UpdateDrafts,
+-                    Uds = workFolderMails.Select(x => x.Id).ToList()
+-                }, false);
++                RestoreMissingDrafts(simpleImapClient, workFolderMails,
++                    action => ExecutActionUpdateDrafts(action, false));
+             }
+ 
+         }
+@@ -733,6 +723,52 @@ public class MailImapClient : IDisposable
+         }
+     }
+ 
++    private void RestoreMissingDrafts(SimpleImapClient draftClient, List<MailInfo> pendingDrafts,
++        Action<CashedMailUserAction> restore)
++    {
++        var sentClient = simpleImapClients.FirstOrDefault(x =>
++            x.Account.MailBoxId == draftClient.Account.MailBoxId &&
++            x.ImapMessagesList != null && x.ImapWorkFolder != null && x.Folder == FolderType.Sent);
++        var sentMessages = sentClient?.ImapMessagesList?.ToArray();
++
++        // Unknown Sent state must not be interpreted as an unsent draft.
++        if (sentMessages == null)
++        {
++            deferredDraftRecovery.TryAdd(draftClient.Account.MailBoxId, 0);
++            return;
++        }
++
++        deferredDraftRecovery.TryRemove(draftClient.Account.MailBoxId, out _);
++        var ids = pendingDrafts
++            .Where(draft => !sentMessages.Any(sent => sent.IMAPMessageId == draft.MimeMessageId))
++            .Select(draft => draft.Id).ToList();
++
++        if (ids.Any())
++        {
++            restore(new CashedMailUserAction { Action = MailUserAction.UpdateDrafts, Uds = ids });
++        }
++    }
++
++    private void RetryDraftRecoveryForSentClient(SimpleImapClient sentClient,
++        Action<SimpleImapClient> updateDraft)
++    {
++        if (sentClient.ImapMessagesList == null || sentClient.Folder != FolderType.Sent ||
++            !deferredDraftRecovery.TryRemove(sentClient.Account.MailBoxId, out _))
++        {
++            return;
++        }
++
++        // Called after UpdateDbFolder releases the engine semaphore.
++        var draftClients = simpleImapClients.Where(x =>
++            x.Account.MailBoxId == sentClient.Account.MailBoxId &&
++            x.ImapMessagesList != null && x.Folder == FolderType.Draft).ToList();
++
++        foreach (var draftClient in draftClients)
++        {
++            updateDraft(draftClient);
++        }
++    }
++
+     private void SetMessageFlagsFromImap(MessageDescriptor imap_message, MailInfo db_message)
+     {
+         if (imap_message == null || db_message == null) return;
