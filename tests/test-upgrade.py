@@ -200,4 +200,32 @@ with tempfile.TemporaryDirectory(prefix="bulkmail-upgrade-") as temp:
             connection.terminate()
             connection.wait(timeout=10)
 
+    # The complete installer must also back up a cold WAL database without
+    # creating root-owned sidecars before its migration drops privileges.
+    cold_root = base / "cold-wal-database-owner"
+    _, cold_db, cold_email_worker = fixture(cold_root)
+    cold_users = users(cold_db)
+    for directory in [cold_root, cold_root / "var", cold_root / "var/lib", cold_db.parent]:
+        directory.chmod(0o755)
+    os.chown(cold_db.parent, www.pw_uid, www.pw_gid)
+    os.chown(cold_db, www.pw_uid, www.pw_gid)
+    cold_db.chmod(0o640)
+    cold_metadata = (cold_db.stat().st_uid, cold_db.stat().st_gid, stat.S_IMODE(cold_db.stat().st_mode))
+    prepare = subprocess.run(["/usr/bin/python3", "-c", "import sqlite3,sys; db=sqlite3.connect(sys.argv[1]); assert db.execute('PRAGMA journal_mode=WAL').fetchone()[0]=='wal'; db.close()", str(cold_db)], text=True, capture_output=True, preexec_fn=database_owner)
+    cold_sidecars = [pathlib.Path(str(cold_db) + suffix) for suffix in ["-wal", "-shm"]]
+    check("Cold WAL fixture has no sidecars or open application connection", prepare.returncode == 0 and not any(path.exists() for path in cold_sidecars))
+    result = run_upgrade(cold_root, environment)
+    if result.returncode:
+        print(result.stdout, result.stderr, flush=True)
+    check("Complete upgrade backs up and migrates a cold www-data WAL database", result.returncode == 0)
+    check("Cold WAL upgrade preserves DB permissions and creates no root-owned sidecars", (cold_db.stat().st_uid, cold_db.stat().st_gid, stat.S_IMODE(cold_db.stat().st_mode)) == cold_metadata and all(not path.exists() or (path.stat().st_uid, path.stat().st_gid) == (www.pw_uid, www.pw_gid) for path in cold_sidecars))
+    # Read as the application user too: a root verification read could itself
+    # recreate WAL files under the wrong owner after a successful upgrade.
+    app_read = subprocess.run(["/usr/bin/python3", "-c", "import json,sqlite3,sys; db=sqlite3.connect(sys.argv[1]); print(json.dumps({'users':db.execute('SELECT * FROM users ORDER BY id').fetchall(),'access':db.execute('SELECT COUNT(*) FROM message_channel_access').fetchone()[0],'integrity':db.execute('PRAGMA integrity_check').fetchone()[0]})); db.close()", str(cold_db)], text=True, capture_output=True, preexec_fn=database_owner)
+    app_result = json.loads(app_read.stdout) if app_read.returncode == 0 else {}
+    check("Application user reads preserved accounts and migrated schema after cold upgrade", app_read.returncode == 0 and app_result.get("users") == [list(row) for row in cold_users] and app_result.get("access") == 0 and app_result.get("integrity") == "ok")
+    cold_backups = list((cold_root / "var/backups/bulkmail").glob("messaging-*/bulkmail.sqlite"))
+    check("Cold WAL snapshot is complete and private to root", len(cold_backups) == 1 and cold_backups[0].stat().st_uid == 0 and stat.S_IMODE(cold_backups[0].stat().st_mode) == 0o600 and stat.S_IMODE(cold_backups[0].parent.stat().st_mode) == 0o700 and users(cold_backups[0]) == cold_users)
+    check("Cold WAL backup cleans its temporary snapshot and preserves email worker", not list(cold_db.parent.glob(".messaging-backup-*")) and cold_email_worker.read_bytes() == original_worker)
+
 print(f"PASS {len(passed)} isolated upgrade checks; no real services or live database used.", flush=True)

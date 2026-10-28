@@ -11,7 +11,7 @@
     "gateway_node_checks": 20,
     "messaging_http_checks": 26,
     "private_configuration_checks": 6,
-    "upgrade_rollback_checks": 31,
+    "upgrade_rollback_checks": 37,
     "php_syntax": "passed",
     "shell_syntax": "passed",
     "python_compile": "passed",
@@ -25,6 +25,7 @@
     "Existing email worker and delivery configuration",
     "Public unsubscribe with an expired CT400 session",
     "SQLite WAL ownership with an existing www-data reader",
+    "Complete upgrade and private backup of a cold www-data WAL database",
     "Code rollback without restoring an old live database"
   ],
   "defaults": {

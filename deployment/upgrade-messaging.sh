@@ -107,17 +107,53 @@ for relative in "${TARGETS[@]}"; do
     fi
 done
 python3 - "$DB_FILE" "$BACKUP_DIR/bulkmail.sqlite" <<'PY'
-import os, pathlib, sqlite3, sys
-source = sqlite3.connect(pathlib.Path(sys.argv[1]).resolve().as_uri()+"?mode=ro", uri=True, timeout=15)
-target = sqlite3.connect(sys.argv[2], timeout=15)
+import os, pathlib, pwd, shutil, sqlite3, sys, tempfile
+source_path = pathlib.Path(sys.argv[1]).resolve()
+backup_path = pathlib.Path(sys.argv[2])
+owner = source_path.stat()
+# Even a read-only SQLite connection can create WAL/SHM files. Run every
+# source-database operation as its owner, including on a cold WAL database.
+# The child writes only in a private temporary directory beside that database;
+# the root parent copies the completed snapshot into the private backup folder.
+temporary = pathlib.Path(tempfile.mkdtemp(prefix=".messaging-backup-", dir=source_path.parent))
 try:
-    source.backup(target)
-    if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-        raise RuntimeError("SQLite backup integrity check failed")
+    os.chown(temporary, owner.st_uid, owner.st_gid)
+    child = os.fork()
+    if child == 0:
+        try:
+            if os.geteuid() == 0 and owner.st_uid != 0:
+                account = pwd.getpwuid(owner.st_uid)
+                os.initgroups(account.pw_name, owner.st_gid)
+                os.setgid(owner.st_gid)
+                os.setuid(owner.st_uid)
+            source = sqlite3.connect(source_path.as_uri()+"?mode=ro", uri=True, timeout=15)
+            target = sqlite3.connect(temporary / "snapshot.sqlite", timeout=15)
+            try:
+                source.backup(target)
+                # Finish as a standalone snapshot with no required sidecar.
+                if target.execute("PRAGMA journal_mode=DELETE").fetchone()[0] != "delete":
+                    raise RuntimeError("Backup journal mode did not settle")
+                if target.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise RuntimeError("Backup integrity check failed")
+            finally:
+                target.close()
+                source.close()
+            os._exit(0)
+        except BaseException:
+            # Never include database contents or credentials in diagnostics.
+            os._exit(1)
+    _, status = os.waitpid(child, 0)
+    if not os.WIFEXITED(status) or os.WEXITSTATUS(status) != 0:
+        raise RuntimeError("SQLite backup failed while running as the database owner")
+    snapshot_fd = os.open(temporary / "snapshot.sqlite", os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(snapshot_fd, "rb") as snapshot:
+        backup_fd = os.open(backup_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(backup_fd, "wb") as backup:
+            shutil.copyfileobj(snapshot, backup)
+            backup.flush()
+            os.fsync(backup.fileno())
 finally:
-    target.close()
-    source.close()
-os.chmod(sys.argv[2], 0o600)
+    shutil.rmtree(temporary)
 PY
 
 MUTATED=0
