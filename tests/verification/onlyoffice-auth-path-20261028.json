@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-28",
+  "scope": "Read-only review of the native ONLYOFFICE source path used to verify a genuine asc_auth_key forwarded in raw Authorization to GET /api/2.0/people/@self.json.",
+  "upstream_release": "v12.8.0",
+  "upstream_commit": "fe1fa7babd093969e939ba6ff45a9fee1299dc93",
+  "evidence_type": "release_source_review_with_exact_git_blob_validation",
+  "findings": {
+    "raw_authorization_header_supported": true,
+    "browser_ip_bound_to_cookie_verification": false,
+    "browser_user_agent_required_or_compared": false,
+    "browser_device_header_required_or_compared": false,
+    "separate_aspnet_session_cookie_required": false,
+    "cookie_embedded_ip_salt_compared_during_decryption": false,
+    "login_event_revocation_checked": true,
+    "login_event_validation_compares_request_ip_or_browser": false,
+    "validation_checks": [
+      "current tenant",
+      "tenant cookie revision",
+      "expiry",
+      "user cookie revision",
+      "active login-event flag",
+      "existing active account"
+    ],
+    "profile_endpoint_identity_source": "SecurityContext.CurrentAccount.ID",
+    "separate_optional_portal_ip_policy_exists": true,
+    "ip_policy_note": "The portal can separately restrict request source addresses through IPRestrictionsSettings and IPSecurity.Verify. That policy is distinct from binding a cookie to its original browser IP or device; its live configuration was not read during this source review.",
+    "crypto_key_scope": "Server instance configuration or machine constant; no browser request input enters decryption-key selection."
+  },
+  "decision": "No User-Agent, X-Forwarded-For, device, or ASP.NET session forwarding change is justified by the native auth-key verification source.",
+  "limits": [
+    "This review verifies the release source path; the live portal authentication methods were not newly disassembled during this review.",
+    "An active native login event remains necessary for cookies that reference one; the integration must continue to accept revocation and expiry failures.",
+    "No new real staff browser request was observed after diagnostic deployment at the time of this review; source review and an invalid-cookie401 probe do not establish successful end-to-end staff sign-in."
+  ],
+  "staff_credentials_or_sessions_read_or_minted": false,
+  "live_auth_configuration_changed": false,
+  "sources": [
+    {
+      "path": "module/ASC.Api/ASC.Specific/ASCCookieAuthorization.cs",
+      "git_blob_sha1": "3172f9a03bde055286824c1bd09d3dbee9f269fe",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/module/ASC.Api/ASC.Specific/ASCCookieAuthorization.cs"
+    },
+    {
+      "path": "common/ASC.Core.Common/Security/Authentication/CookieStorage.cs",
+      "git_blob_sha1": "a8906fcad827689f3916f6673a1b09f297ec3f1c",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/common/ASC.Core.Common/Security/Authentication/CookieStorage.cs"
+    },
+    {
+      "path": "common/ASC.Core.Common/Context/SecurityContext.cs",
+      "git_blob_sha1": "ecd6f088edb538efa981111bea7a4d5e07672f30",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/common/ASC.Core.Common/Context/SecurityContext.cs"
+    },
+    {
+      "path": "common/ASC.Core.Common/Data/DbLoginEventsManager.cs",
+      "git_blob_sha1": "5b17b2b67d294c72179bf9e48ed5133f2d851921",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/common/ASC.Core.Common/Data/DbLoginEventsManager.cs"
+    },
+    {
+      "path": "common/ASC.Common/Security/Cryptography/InstanceCrypto.cs",
+      "git_blob_sha1": "56bd6364596b135d4bc9c424f624091ff6ce136e",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/common/ASC.Common/Security/Cryptography/InstanceCrypto.cs"
+    },
+    {
+      "path": "common/ASC.Common/Security/Cryptography/MachinePseudoKeys.cs",
+      "git_blob_sha1": "9c5c2d328265c829e1499b647249f7f00a6d203f",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/common/ASC.Common/Security/Cryptography/MachinePseudoKeys.cs"
+    },
+    {
+      "path": "module/ASC.Api/ASC.Api/Impl/ApiRouteHandler.cs",
+      "git_blob_sha1": "621efa51c10cd210f2a9fd53988a360fefc02d8b",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/module/ASC.Api/ASC.Api/Impl/ApiRouteHandler.cs"
+    },
+    {
+      "path": "module/ASC.Api/ASC.Api/Interfaces/ApiHttpAsyncHandler.cs",
+      "git_blob_sha1": "d70dfa23d8d8562e2e49427f4b99c9b7fdaeabff",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/module/ASC.Api/ASC.Api/Interfaces/ApiHttpAsyncHandler.cs"
+    },
+    {
+      "path": "module/ASC.Api/ASC.Employee/EmployeeApi.cs",
+      "git_blob_sha1": "f96b07269aa6da66670637b51fd9bc79d0355ae6",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/module/ASC.Api/ASC.Employee/EmployeeApi.cs"
+    },
+    {
+      "path": "web/studio/ASC.Web.Studio/Global.asax.cs",
+      "git_blob_sha1": "fd0417a571e9ef9537d3140fe32ce0133d6b8c68",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/web/studio/ASC.Web.Studio/Global.asax.cs"
+    },
+    {
+      "path": "common/ASC.IPSecurity/IPSecurity.cs",
+      "git_blob_sha1": "6c2a00c2c14c698edab28427b5f185fe635b09ac",
+      "local_content_matches_upstream_blob": true,
+      "url": "https://github.com/ONLYOFFICE/CommunityServer/blob/fe1fa7babd093969e939ba6ff45a9fee1299dc93/common/ASC.IPSecurity/IPSecurity.cs"
+    }
+  ]
+}

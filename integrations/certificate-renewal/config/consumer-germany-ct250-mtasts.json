@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "role": "germany-ct250-grange-mtasts",
+  "source_hostname": "mx2.the-grange.uk",
+  "spki_sha256": "658976573ecd31767bacb950b658d5b6b3e88597478f8e7ad34aff3e0b55268a",
+  "state_dir": "/var/lib/grange-certificate-renewal/mtasts",
+  "backup_dir": "/var/backups/grange-mtasts-tls-automatic"
+}

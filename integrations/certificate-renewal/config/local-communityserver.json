@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "lineage": "communityserver",
+  "sans": ["work.the-grange.uk"],
+  "spki_sha256": "1ea8c5425b3cfb85aba4247a9d3a49c723472491d65d38f4df0b2fbe619ebad2",
+  "lineage_dir": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/CommunityServer/letsencrypt/live/communityserver",
+  "renewal_config": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/CommunityServer/letsencrypt/renewal/communityserver.conf",
+  "state_dir": "/var/lib/grange-certificate-renewal/communityserver",
+  "lock_path": "/run/lock/grange-certificate-communityserver.lock",
+  "certbot_executable": "/usr/bin/certbot",
+  "certbot_version": "certbot 1.21.0",
+  "command_prefix": ["/usr/sbin/pct", "exec", "400", "--", "docker", "exec", "onlyoffice-community-server"],
+  "webroot": "/var/www/onlyoffice/Data/certs",
+  "lookahead_seconds": 86400,
+  "consumers": [
+    {
+      "name": "work_web",
+      "key_path": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/CommunityServer/data/certs/onlyoffice.key",
+      "files": {
+        "fullchain_pem": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/CommunityServer/data/certs/onlyoffice.crt",
+        "chain_pem": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/CommunityServer/data/certs/stapling.trusted.crt"
+      },
+      "validate": ["/usr/sbin/pct", "exec", "400", "--", "docker", "exec", "onlyoffice-community-server", "nginx", "-t"],
+      "activate": ["/usr/sbin/pct", "exec", "400", "--", "docker", "exec", "onlyoffice-community-server", "service", "nginx", "reload"],
+      "endpoints": [{"address": "192.168.1.5", "port": 443, "server_name": "work.the-grange.uk", "protocol": "tls"}]
+    },
+    {
+      "name": "work_mail",
+      "key_path": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/MailServer/data/certs/mail.onlyoffice.key",
+      "files": {
+        "fullchain_pem": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/MailServer/data/certs/mail.onlyoffice.crt",
+        "chain_pem": "/DATA/machines/storage/VM-NVME/subvol-400-disk-0/app/onlyoffice/MailServer/data/certs/mail.onlyoffice.ca-bundle"
+      },
+      "validate": [],
+      "activate": ["/usr/sbin/pct", "exec", "400", "--", "docker", "restart", "onlyoffice-mail-server"],
+      "endpoints": [
+        {"address": "192.168.1.5", "port": 25, "server_name": "work.the-grange.uk", "protocol": "smtp-starttls"},
+        {"address": "192.168.1.5", "port": 465, "server_name": "work.the-grange.uk", "protocol": "tls"},
+        {"address": "192.168.1.5", "port": 587, "server_name": "work.the-grange.uk", "protocol": "smtp-starttls"},
+        {"address": "192.168.1.5", "port": 993, "server_name": "work.the-grange.uk", "protocol": "tls"},
+        {"address": "192.168.1.5", "port": 995, "server_name": "work.the-grange.uk", "protocol": "tls"}
+      ]
+    },
+    {
+      "name": "bulkmail_web",
+      "key_path": "/DATA/machines/storage/VM-NVME/subvol-300-disk-0/etc/nginx/ssl/bulkmail/work.the-grange.uk.key",
+      "files": {"fullchain_pem": "/DATA/machines/storage/VM-NVME/subvol-300-disk-0/etc/nginx/ssl/bulkmail/work.the-grange.uk.crt"},
+      "validate": ["/usr/sbin/pct", "exec", "300", "--", "nginx", "-t"],
+      "activate": ["/usr/sbin/pct", "exec", "300", "--", "systemctl", "reload", "nginx"],
+      "endpoints": [{"address": "192.168.1.26", "port": 9443, "server_name": "work.the-grange.uk", "protocol": "tls"}]
+    }
+  ]
+}

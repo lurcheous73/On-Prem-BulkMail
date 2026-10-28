@@ -1,0 +1,10 @@
+{
+  "backup_dir": "/var/backups/grange-mx-tls-automatic",
+  "hostname": "mx2.the-grange.uk",
+  "java_class_sha256": "5cac7bd6866c87fd8621bc911cbb21150692822a4fe3ae82b7d9474ed4a0e010",
+  "java_helper_dir": "/opt/grange-certificate-renewal/java",
+  "publisher": "http://10.50.0.80:8099",
+  "schema": 1,
+  "spki_sha256": "658976573ecd31767bacb950b658d5b6b3e88597478f8e7ad34aff3e0b55268a",
+  "state_dir": "/var/lib/grange-certificate-renewal/mx"
+}

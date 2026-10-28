@@ -87,5 +87,57 @@
     "app/bulkmail-request-diagnostics.php": "4513c43e3ebf9ee0a408028a923f002adca611210ab15f8b6843dff5bc5726f7",
     "tests/identity-bootstrap-http.py": "b4a4d9874d01b58717ee849b677df79f695e8ab18ac2008f6a397831247db578"
   },
-  "deployment_note": "The three reviewed source files are installed and PHP-FPM has been gracefully reloaded. A fresh normal user browser request is still required to verify the real sign-in result; the local lock reproduction alone does not prove the cause of the earlier Safari aborts."
+  "deployment_note": "The three reviewed source files are installed and PHP-FPM has been gracefully reloaded. A fresh normal user browser request is still required to verify the real sign-in result; the local lock reproduction alone does not prove the cause of the earlier Safari aborts.",
+  "source_commit": "e864e7a7b242390deb7549b85f00f99e44ddfdf2",
+  "live_after_deployment_checks": {
+    "anonymous_broker_request": {
+      "status": 401,
+      "expected_error": "invalid_client",
+      "sets_local_session_cookie": false,
+      "elapsed_ms": 68
+    },
+    "anonymous_bulkmail_login_page": {
+      "status": 200,
+      "ordinary_session_cookie_retained": true,
+      "elapsed_ms": 26
+    },
+    "anonymous_meet_redirect_chain": {
+      "redirect_statuses": [
+        302,
+        302,
+        302
+      ],
+      "broker_host": "work.the-grange.uk",
+      "broker_port": 9443,
+      "callback_path": "/host/auth/ct400/callback",
+      "final_path": "/host/login",
+      "final_status": 200,
+      "fresh_staff_session_used": false
+    },
+    "live_meet_backchannel": {
+      "runtime_user": "www-data",
+      "trusted_https": true,
+      "configured_service_client_authentication_accepted": true,
+      "deliberately_invalid_authorization_code_rejected": true,
+      "status": 400,
+      "expected_error": "invalid_grant",
+      "elapsed_ms": 303,
+      "real_staff_code_or_session_used": false
+    },
+    "public_work_and_bulkmail_new_certificate_verified_from_canada": true,
+    "fresh_staff_browser_success_observed": false,
+    "unattributed_anonymous_browser_shaped_request": {
+      "time_utc": "2026-10-28T21:27:23Z",
+      "user_agent_differs_from_earlier_reported_safari_requests": true,
+      "staff_or_user_identity_attributed": false,
+      "portal_cookie_present": false,
+      "local_session_cookie_present": false,
+      "fetch_destination_and_site_headers_present": false,
+      "broker_status": 302,
+      "broker_outcome": "login_required",
+      "subsequent_meet_callback_outcome": "invalid_login_state",
+      "meet_login_fallback_status": 200,
+      "does_not_verify_reuse_of_a_logged_in_work_session": true
+    }
+  }
 }

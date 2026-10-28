@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly persistent MTA-STS public certificate deployment check
+
+[Timer]
+OnCalendar=*-*-* *:20:00 UTC
+AccuracySec=1s
+Persistent=true
+Unit=grange-mtasts-certificate-consumer.service
+
+[Install]
+WantedBy=timers.target

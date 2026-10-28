@@ -1,0 +1,26 @@
+{
+  "allowed_sources": [
+    "10.50.0.80",
+    "10.50.0.100",
+    "10.50.0.110",
+    "10.44.0.10",
+    "10.44.0.110",
+    "10.44.0.12",
+    "10.50.0.250"
+  ],
+  "bind_address": "10.50.0.80",
+  "challenge_dir": "/var/lib/grange-certificate-renewal/challenges",
+  "hosts": [
+    "mx1.the-grange.uk",
+    "mx2.the-grange.uk",
+    "mx1.brimstonecottage.uk",
+    "mx2.brimstonecottage.uk"
+  ],
+  "http_challenge_hosts": [
+    "mx1.brimstonecottage.uk",
+    "mx2.brimstonecottage.uk"
+  ],
+  "port": 8099,
+  "public_dir": "/var/lib/grange-certificate-renewal/public",
+  "schema": 1
+}

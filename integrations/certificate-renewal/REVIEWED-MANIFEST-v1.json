@@ -1,0 +1,40 @@
+{
+  "files": {
+    "README.md": "1a9c07e3a67f8fabc0ba004afc781f78ffa61829f8b83c948d7f5e273231e271",
+    "config/consumer-mx1.brimstonecottage.uk.json": "286932315d0c4d70d7b027c707c3a8d413bd56306adf9bc26c3f87c6c2c35619",
+    "config/consumer-mx1.the-grange.uk.json": "9fc8e3f6cd59f554638375f1838f0394d7c17ef20e444be77317ba6b74d0f07f",
+    "config/consumer-mx2.brimstonecottage.uk.json": "23fa52a37d6d81643e9e4c6bee756fb44cedc2e6c7f9faaf8ae8f6387af2724f",
+    "config/consumer-mx2.the-grange.uk.json": "cb965ee847ec7862634fa77272424f50b2ea3f95fe7e2e40f74a23f92cd6657c",
+    "config/issuer.json": "57b48699bf8186e3d4cf6fc2b6e79d5ec6e2a6dbedf560e89d24556f939c3fd9",
+    "config/publisher.json": "ae046865a543749b9ebf5ed8c3d793c2b9ababa4129dab83e5dfe080b1d30e68",
+    "issuer.py": "a6e5a709370ab8cbc66bdb664e56165fb71f299fbdb6028b8d8c5c1a0f18279f",
+    "java/GrangeRenewalKeystore.class": "b2c66b20f5177eed1544d448ea0acdaa54e59696291e7d5c149af7199f771625",
+    "java/GrangeRenewalKeystore.java": "cec755542ee108590d274990d4a2b62adbb21bad430206ded54e8dfe6f0b9468",
+    "mx_consumer.py": "c6bfb779ba7405604a44c4ed85aaf1d7c8d09908a26caf42de1f9fcfee4e9c36",
+    "proxy_config.py": "4702532ff4636befaf1b1fde41dcc177e54ca0a70ac23ce2a89287428b9a54dc",
+    "public_server.py": "3ac64ee2e94783c1a15f38c6bb41e71ec6b093d42a25f711871a40187d4b1888",
+    "renewal_common.py": "2d1519619ee2e94a8a8dea054b28772fe4ea95e3acf63ce71864122bd725d392",
+    "systemd/grange-certificate-issuer-retry.service": "37b17fe0384002dcc575182bcc6b998f08b38a791771a00c6139d87997d2713e",
+    "systemd/grange-certificate-issuer-retry.timer": "c720f46bf405946f9ff4c7c2cf1f46fc7b5ede0e497e2ba2d80de440b854f3ab",
+    "systemd/grange-certificate-issuer.service": "add96160e355ed060ea1d46534f0472c795e6600e0efe7f90b946510735043bd",
+    "systemd/grange-certificate-issuer.timer": "90fde1a2e9a829a7464541967656d1cc0b9726ce542e7c3e6fc26a1df8485f60",
+    "systemd/grange-certificate-publisher.service": "4d1efc66233d5ba935e7edaab8039ffdeea55a97a79263c4078ea15b9634405c",
+    "systemd/grange-mx-certificate-consumer.service": "4c9e2d1dd71d75b0aa9886704441fb4ae068e0da3e91a48700cf31c11bcbebd9",
+    "systemd/grange-mx-certificate-primary.timer": "cc0cfb74ab05513d9f7e71b6ab0988a519b7efcf62a9954b25dedf5a04a6df6f",
+    "systemd/grange-mx-certificate-secondary.timer": "7b4fd550d956161f0dcd95546ee51fad1ec3b718b6583af98e7cc1f395b2c1a2",
+    "tests/test_independent_consumer_review.py": "c1730b333a01039f07176b7ec191099e52b7e14da540dfd8424e857c7b7dd74f",
+    "tests/test_independent_issuer_review.py": "b4c93a16fb6d12e3c5695ccbf824207664c69b466524beb15873a4200522c63f",
+    "tests/test_java_keystore.py": "ee633a96e4b36d6612acd3806283f643ef467f90ff2f045483afa29205045f05",
+    "tests/test_mx_transactions.py": "80a9db0d89710238b5cd82d492f80492609ed7385e54ecd81c4947ed9c674f93",
+    "tests/test_policy_and_proxy.py": "947ecea853ba9b28b91fe8ead9b455062ae84873e99ba4f05d42049b3e406d8a"
+  },
+  "live_deployment_status": "not_yet_verified",
+  "schema": 1,
+  "scope": "reviewed-central-four-MX-package",
+  "verification": {
+    "frozen_manual_helpers_unchanged": true,
+    "independent_issuer_checks_passed": 14,
+    "systemd_units_verified": 8,
+    "unittest_checks_passed": 39
+  }
+}

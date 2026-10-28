@@ -1,0 +1,21 @@
+[Unit]
+Description=Validate and deploy MX2 public certificate to the existing MTA-STS vhost
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStartPre=/usr/bin/mkdir -p /tmp/nginx
+ExecStart=/usr/bin/python3 -B /opt/grange-certificate-renewal/pem_consumer.py --config /etc/grange-certificate-renewal/consumer-mtasts.json --apply
+TimeoutStartSec=120s
+TimeoutStopSec=90s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/custom_ssl/grange-mtasts /var/lib/grange-certificate-renewal/mtasts /var/backups/grange-mtasts-tls-automatic /run
+ReadWritePaths=-/data/logs -/var/log/nginx -/usr/local/openresty/nginx/logs
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK

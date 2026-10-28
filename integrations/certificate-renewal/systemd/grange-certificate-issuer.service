@@ -1,0 +1,18 @@
+[Unit]
+Description=Issue and publish due MX certificates within the 28-day policy
+After=network-online.target grange-certificate-publisher.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 -B /opt/grange-certificate-renewal/issuer.py --config /etc/grange-certificate-renewal/issuer.json --apply
+TimeoutStartSec=30min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/grange-certificate-renewal /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /run
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "lineage": "mx2.brimstonecottage.uk",
+  "sans": ["mx2.brimstonecottage.uk"],
+  "spki_sha256": "54670ac69011d59af846681b6ea5a8395d636beddba730d245dce5f7b298416a",
+  "lineage_dir": "/etc/letsencrypt/live/mx2.brimstonecottage.uk",
+  "renewal_config": "/etc/letsencrypt/renewal/mx2.brimstonecottage.uk.conf",
+  "state_dir": "/var/lib/grange-certificate-renewal/mx2-brimstone-edge",
+  "lock_path": "/run/lock/grange-certificate-mx2-brimstone-edge.lock",
+  "certbot_executable": "/opt/certbot/bin/certbot",
+  "certbot_version": "certbot 5.8.0",
+  "command_prefix": [],
+  "webroot": "/data/letsencrypt-acme-challenge",
+  "lookahead_seconds": 86400,
+  "consumers": [
+    {
+      "name": "mx2_https_edge",
+      "key_path": "/etc/grange-certificate-renewal/consumers/mx2/privkey.pem",
+      "files": {"fullchain_pem": "/etc/grange-certificate-renewal/consumers/mx2/fullchain.pem"},
+      "validate": ["/usr/local/openresty/nginx/sbin/nginx", "-t"],
+      "activate": ["/usr/local/openresty/nginx/sbin/nginx", "-s", "reload"],
+      "endpoints": [{"address": "127.0.0.1", "port": 443, "server_name": "mx2.brimstonecottage.uk", "protocol": "tls"}]
+    }
+  ]
+}

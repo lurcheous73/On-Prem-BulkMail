@@ -1,0 +1,186 @@
+{
+  "candidate": {
+    "actual_prime_bits": [
+      3072,
+      3072
+    ],
+    "selectors": [
+      512,
+      1024
+    ],
+    "sha256": "f8d823cb32adfc3f3ff11f52e0754c89b996dd01aae6896b9aa690f67bebee42",
+    "size": 812
+  },
+  "files": {
+    "README.md": "d2181abb9955af63ed05ffaf859113cee1c4ecc67a711f230ef813893901981f",
+    "dovecot_legacy_dh.py": "cd073ab78ae877744373cba03b112cd8c8f0985b61c48a3364f0e0a998406f82",
+    "ffdhe3072.der": "e6c929eaf5be4558cbe49edc31017c7f646723bdc006270bed368afde14acb14",
+    "ffdhe3072.pem": "c410cc9c4fd85d2c109f7ebe5930ca5304a52927c0ebcb1a11c5cf6b2386bbab",
+    "install_dovecot_dh.py": "9a73b739e1f0794f62e7c25786eac7d2be9fddff6a1e5947281d8d304d9349cc",
+    "native_loader_probe.c": "e524539991ea990a6353bebb1b755bc83ee0c9ea3567b6d3548650ba3b9884e6",
+    "tests/test_install_dovecot_dh.py": "32706d56fcf32d736f35b145fbda1fd5730e50fdb779812db091a8164e9cd0f3",
+    "tests/test_legacy_dh.py": "bd0382838c9a3ccf824dec07bf8448d73fdcb2b52e2ff3cf4683df5d4287771c"
+  },
+  "live_deployment_status": "verified_after_certificate_driven_container_restart",
+  "live_verification": {
+    "central_tls_record": "tests/verification/mail-sync-tls-20261028.json",
+    "date_utc": "2026-10-28",
+    "initial_scoped_install": {
+      "certificate_sha256": "1a5610e0a119f37c90b4429e2fcbc84f24b241ef5407a416239fcba759994ed3",
+      "dh_bits": 3072,
+      "protocol": "TLSv1.2",
+      "transaction": "/var/backups/grange-dovecot-dh/transaction-20261028T211731Z-83612a6b053b",
+      "trusted_ports": [
+        993,
+        995
+      ],
+      "verified_at_utc": "2026-10-28T21:17:31Z"
+    },
+    "persistence_scope": "Restart of the same Docker container; a recreated container requires guarded re-enrollment and installation",
+    "post_certificate_restart": {
+      "certificate_not_after": "2027-01-26T20:24:24Z",
+      "certificate_sha256": "64044df252958db65e6705b7757aa1f93567d67031ef39c87bee7a008b105f94",
+      "container_start_changed_since_install": true,
+      "container_started_at": "2026-10-28T21:23:02.219166948Z",
+      "dh_bits": 3072,
+      "installed_files": {
+        "main": {
+          "gid": 0,
+          "mode": "0644",
+          "sha256": "728fa392607ebebf576360a44c0bedebdaa921670381883f4c93cb8dbb1ff060",
+          "uid": 0
+        },
+        "parameters": {
+          "gid": 0,
+          "mode": "0644",
+          "sha256": "f8d823cb32adfc3f3ff11f52e0754c89b996dd01aae6896b9aa690f67bebee42",
+          "uid": 0
+        },
+        "template": {
+          "gid": 0,
+          "mode": "0664",
+          "sha256": "6abc57d4f580b95b8f04514f38239fd1df64d6670b3ef1a9cee83b387ee25b13",
+          "uid": 0
+        }
+      },
+      "live_master_count": 1,
+      "private_operator_evidence_file": "dovecot-dh-after-certificate-restart.jsonl",
+      "protocol": "TLSv1.2",
+      "same_container_id": true,
+      "ssl_parameters_regenerate": 0,
+      "trusted_ports": [
+        993,
+        995
+      ],
+      "unchanged_certificate_spki_sha256": "1ea8c5425b3cfb85aba4247a9d3a49c723472491d65d38f4df0b2fbe619ebad2"
+    }
+  },
+  "mandatory_live_gates": [
+    "verify exact image/version and current file/config/template hashes",
+    "native staged-main configuration validation",
+    "three-file private backup and complete guarded rollback",
+    "fresh Dovecot with strict993/995 TLS and DH3072 proof",
+    "repeat file/config and trusted TLS proof after later certificate-driven Docker restart"
+  ],
+  "original": {
+    "actual_prime_bits": [
+      512,
+      1024
+    ],
+    "selectors": [
+      512,
+      1024
+    ],
+    "sha256": "3748ae64860d81ec2c4806bc31a0a0a50019269a9c5a765ac9c0eb4edf364947",
+    "size": 230
+  },
+  "runtime": {
+    "certificate_probe_ports": [
+      993,
+      995
+    ],
+    "container": "onlyoffice-mail-server",
+    "container_python_required": false,
+    "host": "CT400 Docker host",
+    "host_lock_path": "/run/lock/onlyoffice-mail-cert.lock",
+    "image": "onlyoffice/mailserver:1.6.75",
+    "main_config_sha256": "332a9e294ea1ed2e2d3ac1b1f43413ef819cd93fdfa1be066d7986631b8a02d9",
+    "native_process_argv": [
+      "ps",
+      "-e",
+      "-o",
+      "pid=",
+      "-o",
+      "comm=",
+      "-o",
+      "stat="
+    ],
+    "native_process_inventory": "Nonempty, fully parsed unique-PID rows; exactly one live master required during preflight/final service proof; only Z zombies excluded from stop wait",
+    "native_procps_version": "3.2.8",
+    "native_service": "dovecot",
+    "native_source_metadata": {
+      "main": {
+        "gid": 0,
+        "mode": "0644",
+        "uid": 0
+      },
+      "parameters": {
+        "gid": 0,
+        "mode": "0644",
+        "uid": 0
+      },
+      "template": {
+        "gid": 0,
+        "mode": "0664",
+        "uid": 0
+      }
+    },
+    "native_staging_parent": "/var/run",
+    "native_timeout_argv": [
+      "/usr/bin/timeout",
+      "--signal=KILL",
+      "SECONDS"
+    ],
+    "python_minimum": "3.8",
+    "template_path": "/usr/src/iRedMail/samples/dovecot/dovecot2.conf",
+    "template_sha256": "ee61c1bf479996b8c73b4fb82b2413166e84e7785d0342566fb2fcc322018d4b"
+  },
+  "schema": 1,
+  "scope": "Dovecot2.1.17 public DH parameter correction for CT400 IMAPS/POP3S",
+  "upstream": {
+    "archive_sha256": "f59cb39ff5839badaf73fa28006c37b79839b48e782baf256c80d5cc56d1421a",
+    "inspected_source_sha256": {
+      "doc/example-config/conf.d/10-ssl.conf": "55398e0d4a32b1d912319c185b64a1448135622e0bd668d8763643158431be35",
+      "src/login-common/ssl-proxy-openssl.c": "9170d22dec902f0d34fa9dd933ab2a990866f23482aab289e6b788ff0f4003ee",
+      "src/ssl-params/main.c": "e1143637a8f9dff876f5064989126990f4eeb47f011c80a9af52979dbe663a8a",
+      "src/ssl-params/ssl-params-openssl.c": "4b2b991dae87e69a2798d39d5c5ac0bbc3153758503d36f181893d1dca572717",
+      "src/ssl-params/ssl-params-settings.c": "db93cc7f80a2b9d5fb13e7643f6e110f556a0ff56b2e30dcdfdf0c056175738b",
+      "src/ssl-params/ssl-params.c": "ed75db807b88795d917b6c851bbb2bf600c6f5abfc6c29f7768284a7ee64c954"
+    },
+    "url": "https://dovecot.org/releases/2.1/dovecot-2.1.17.tar.gz"
+  },
+  "verification": {
+    "actual_original_hash_guarded_build_passed": true,
+    "independent_checks_passed": 15,
+    "independent_rfc7919_prime_formula_match": true,
+    "independent_source_review": "GO",
+    "installer_compatibility_delta": "Independently reviewed legacy KILL timeout, exact source metadata, /var/run stage, and strict separate-o native process inventory with live-master and worker-exit guards",
+    "installer_independent_checks_passed": 32,
+    "installer_independent_source_review": "GO",
+    "installer_offline_checks_passed": 32,
+    "installer_python38_syntax_checked": true,
+    "installer_reviewed_base_sha256": "e3ebb7db37dd0b3e76487cfce75e995048998ea61f426864238edb116f699311",
+    "installer_reviewed_sha256": "9a73b739e1f0794f62e7c25786eac7d2be9fddff6a1e5947281d8d304d9349cc",
+    "legacy_timeout_native_probe": {
+      "coreutils_version": "8.4",
+      "descendant_marker_observed": false,
+      "exit_code": 137,
+      "limit_seconds": 1,
+      "observed_seconds": 1.031,
+      "operator": "root",
+      "signal": "KILL"
+    },
+    "offline_checks_passed": 15,
+    "real_openssl_native_loader_probe": true
+  }
+}

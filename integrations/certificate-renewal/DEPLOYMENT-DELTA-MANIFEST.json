@@ -1,0 +1,61 @@
+{
+  "base_release": {
+    "archive_name": "grange-renewal28-core-v2-reviewed.tar.gz",
+    "archive_sha256": "01a57a128d219cd643e71c2e61445279bdd614acdde555dcb63233af281fc247",
+    "immutable": true,
+    "manifest_sha256": "c440a9b78a2a6729d6c0f36a050f906d0b481759fc4a720c73f3bb4598261896"
+  },
+  "files": {
+    "CT250-HANDOVER.md": "f5bb2fa0a6797806c5cae15851ece918a099b10e0c9f6b15373343cf6007d491",
+    "DEPLOYMENT-DELTA.md": "c37e8eb48696fb6f4b0fd2223abba0497f29f42cfcd8502ec0d394024123ecae",
+    "ISSUER-RETRY-DELTA.md": "80a7ac50f970ab99b133199a41e2a08aada365ad1e9510a4a8a037806cca201d",
+    "deploy_mx_adapter_v2.py": "d619153a95ffc06a66b10cf462daf69de26b8966e895abc7e867bf36843299be",
+    "issuer.py": "ce21e755f68c131d0a82ef9417f41ff85a87b1d46bc1ba3fd042d5f56bfab87f",
+    "stage_ct250_from_v2.py": "04e05676961cab839bd791ebf054f248e386068157f11404e66b6a552752ed2b",
+    "systemd/grange-mtasts-certificate-consumer.service": "61f3176f4f8a0eea495aa16d93abc2f8925444f02fce4aea936725369d59e4ae",
+    "systemd/grange-mx-certificate-consumer.service": "6ff737612c38423bc95d3be6a442c017bd3a8f6b8941f67a877af414d6fc903a",
+    "tests/test_adapter_deployment.py": "80ec1c98f28a4570a40dadb1304322ce603106d0f4907cd016f96806b5c6e70b",
+    "tests/test_ct250_unit_contract.py": "2809427e2af9bee322f6aeafade158c53174561768ec982888b78993424ee3f6",
+    "tests/test_independent_staging_review.py": "7d75084503fa1a73480a6d9fbf442fcfa0fd6ee605147f1c1f074fb5a7da7b8f",
+    "tests/test_issuer_interrupted_retry.py": "548c5e50d476fb84abcb3c9db3f07683a8a73a15f6b82cdbb53d9ef5b8383bcd"
+  },
+  "live_acceptance": "Recorded separately by the operator; this manifest does not assert timer enablement or loaded certificate state",
+  "previous_pins": {
+    "intermediate_ct250_netlink_service": "fc4098e640c7798ce658df5d3da59788bce1c9fbae05b5d9ef77de8c35edba5c",
+    "issuer.py": "a6e5a709370ab8cbc66bdb664e56165fb71f299fbdb6028b8d8c5c1a0f18279f",
+    "packaged_ct250_service": "76c7f8366bd8a54be2e4a08f698c240dd5efef708b0447aa7e5f14d914d17f9c",
+    "packaged_mx_service": "4c9e2d1dd71d75b0aa9886704441fb4ae068e0da3e91a48700cf31c11bcbebd9"
+  },
+  "purpose": "Explicit deployment deltas after the immutable reviewed v2 certificate-renewal release",
+  "schema": 1,
+  "unchanged_runtime_pins": {
+    "GrangeRenewalKeystore.class": "5cac7bd6866c87fd8621bc911cbb21150692822a4fe3ae82b7d9474ed4a0e010",
+    "java/GrangeRenewalKeystore.java": "102838ad3e0048b0ebbba1e7766b748d4aed015259b99b5c6f818250cd1f8836",
+    "mx_consumer.py": "c6bfb779ba7405604a44c4ed85aaf1d7c8d09908a26caf42de1f9fcfee4e9c36",
+    "pem_consumer.py": "8cea6688001a6ff8a0848c4fbbdb006f9dc44d18641ff834e695f209f11bf0ec",
+    "proxy_config.py": "7aa1db505ff5bec1a500cbf68c1cc2c4a7f0b6b3d27ec90a0cd1157404977735",
+    "public_server.py": "3ac64ee2e94783c1a15f38c6bb41e71ec6b093d42a25f711871a40187d4b1888",
+    "renewal_common.py": "2d1519619ee2e94a8a8dea054b28772fe4ea95e3acf63ce71864122bd725d392"
+  },
+  "validation": {
+    "ct250_final_unit_derived_from_actual_immutable_v2_archive": "passed",
+    "issuer_guarded_deployment_command": "syntax_checked; operator must coordinate inactive services and timer state",
+    "systemd_analyze_verify_ct250_service_and_timer": "passed",
+    "test_adapter_deployment.py": {
+      "independently_reviewed": true,
+      "passed": 10
+    },
+    "test_ct250_unit_contract.py": {
+      "independently_reviewed": true,
+      "passed": 3
+    },
+    "test_independent_staging_review.py": {
+      "independently_reviewed": true,
+      "passed": 4
+    },
+    "test_issuer_interrupted_retry.py": {
+      "independently_reviewed": true,
+      "passed": 7
+    }
+  }
+}

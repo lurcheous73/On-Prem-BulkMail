@@ -1,0 +1,12 @@
+[Unit]
+Description=Primary MX certificate deployment at minute 35, after secondary checks
+
+[Timer]
+OnCalendar=*-*-* *:35:00 UTC
+RandomizedDelaySec=30s
+AccuracySec=1s
+Persistent=true
+Unit=grange-mx-certificate-consumer.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,480 @@
+{
+  "date": "2026-10-28",
+  "mail_sync": {
+    "status": "reviewed_v3_hotfix_deployed_and_recovery_verified",
+    "source_commit": "a63c19401a93b8b5e44eeb0dfe346dd5247e57cd",
+    "upstream_commit": "bce218db218bff90a8583e9f01dcc1e5464f8bc4",
+    "service": "onlyofficeMailImap.service",
+    "independent_regression_checks_passed": 52,
+    "assembly_references_compared_and_identical": 37,
+    "deployed_dll_sha256": "ffeef42868c9dc0c190ddb56b4dda2b384145bc9f6ef51d09af17f3bf2583b16",
+    "deployed_pdb_sha256": "4925cdb5b0f6b87d5bd34c207ad5f84d9a43649bcd434258875cd51cf5c6b62a",
+    "core_assembly_unchanged": true,
+    "only_imap_sync_service_restarted": true,
+    "service_active_and_main_pid_stable": true,
+    "assembly_startup_errors": 0,
+    "private_rollback_copy_verified": true,
+    "messages_sent_by_verification_or_deployment": 0,
+    "next_normal_user_send_not_yet_observed": true,
+    "maintenance_limit": "The patch is guarded for the recorded ONLYOFFICE image and assembly hashes. Recreating or upgrading the Community Server container requires reviewing/reapplying the compatible correction or verifying an upstream fix.",
+    "hotfix_revision": 3,
+    "unchanged_core_sha256": "4be22c0e9f7a0dff67fb8a8631949213f3511897d9fbe170058371ce3751710e",
+    "post_recovery_service_hash_verified": true,
+    "temporary_debug_logging_restored_byte_exact": true,
+    "restored_nlog_sha256": "9f0b7eb71c7e1b84ae4da139f36a9dac75db604e286636ecce5173c28e68e54a"
+  },
+  "draft_recovery": {
+    "status": "completed_and_final_read_only_check_passed",
+    "read_only_discovery_draft_rows": 31,
+    "read_only_discovery_sent_rows": 48,
+    "message_id_candidate_pairs": 27,
+    "normalized_payload_matches": 21,
+    "remaining_unverified_drafts": 10,
+    "dovecot_mailbox_guid_and_message_guid_search_supported": true,
+    "sent_messages_retransmitted": 0,
+    "strict_ordered_mime_length_framed_preflight_pairs": 21,
+    "strict_preflight_mutations": 0,
+    "dovecot_draft_count_at_preflight": 32,
+    "helper_source_commit": "5edde20412e4d078f58ed979f9c9660b6b6eee4f",
+    "helper_independent_safety_checks_passed": 46,
+    "wrapper_sha256": "b12e6431d981e66369b734df9fc2b3724a7660b5de3bca553f8370787d977bf5",
+    "archive_sha256": "99106de97abcfe76ca32da28550e086dfe1e275bb913bbca220c14797c105c34",
+    "activity_helper_sha256": "b31f457644a7be4878927b6410ab128a85bf96812abafd7ff8968e410fc072da",
+    "recovery_folder": "Recovered sent drafts 2026-10-28",
+    "fresh_strict_payload_pairs_verified_before_archive": 21,
+    "per_message_fresh_identity_and_payload_guards": true,
+    "journal_events": {
+      "prepared": 21,
+      "move_verified": 21,
+      "portal_converged": 21,
+      "complete": 1
+    },
+    "before_archive_imap_counts": {
+      "drafts": 32,
+      "sent": 48,
+      "recovery": 0
+    },
+    "after_archive_imap_counts": {
+      "drafts": 11,
+      "sent": 48,
+      "recovery": 21
+    },
+    "final_portal_counts": {
+      "drafts": 10,
+      "sent": 48
+    },
+    "preserved_portal_draft_id_set_verified": true,
+    "preexisting_imap_draft_without_portal_row_preserved": 1,
+    "draft_count_scope_note": "The portal retains all 10 previously unverified Draft rows. IMAP retains those drafts and one pre-existing additional message that had no portal row, for 11 Draft messages. The 21 exact sent duplicates are retained in the recovery folder; Sent remains 48 in both systems.",
+    "normal_application_convergence_verified_for_all_archived_messages": true,
+    "sql_folder_updates": 0,
+    "permanent_message_deletions": 0,
+    "normal_activity_requests_acknowledged": 29,
+    "completed_maintenance_units": 21,
+    "maintenance_elapsed_seconds": 596.129,
+    "maintenance_errors": 0,
+    "completion_tail_used": false,
+    "further_activity_requested": false,
+    "maintenance_process_remaining": false
+  },
+  "tls": {
+    "mx1.the-grange.uk": {
+      "action": "renewed_and_installed",
+      "old_expiry_utc": "2026-11-25T07:31:05Z",
+      "expiry_utc": "2027-01-26T18:00:31Z",
+      "certificate_sha256": "e1dc52775269fdfaefaeee65e1a4e8665d04a1ca4d287ac86100f7d3b9c2451b",
+      "existing_private_key_and_dane_spki_preserved": true,
+      "trusted_matching_live_tls_ports": [
+        443,
+        25,
+        465,
+        587
+      ],
+      "private_backup_created": true,
+      "independent_public_smtp_tls_verified_ports": [
+        25,
+        465,
+        587
+      ],
+      "native_certificate_dates_synchronized": true,
+      "native_future_reminders_preserved": true,
+      "next_native_reminder_date_utc": "2026-12-07",
+      "automatic_renewal_policy_days": 28,
+      "actual_systemd_consumer_run": "passed",
+      "consumer_timer_enabled": true,
+      "consumer_timer_active": true,
+      "paired_mx_health_probe_from_this_container": "passed",
+      "deployment_verification": "current_published_certificate_matched; no Xeams restart required",
+      "consumer_timer_role": "primary"
+    },
+    "mx2.the-grange.uk": {
+      "action": "renewed_and_installed",
+      "old_expiry_utc": "2026-11-25T07:46:25Z",
+      "expiry_utc": "2027-01-26T17:58:57Z",
+      "certificate_sha256": "f20fd0a30bc50909e65c64dcd95a77311d1d59fdbfb64cc86a7ca579b8f34332",
+      "existing_private_key_and_dane_spki_preserved": true,
+      "mta_sts_name_retained": true,
+      "trusted_matching_live_tls_ports": [
+        443,
+        25,
+        465,
+        587
+      ],
+      "private_backup_created": true,
+      "independent_public_smtp_tls_verified_ports": [
+        25,
+        465,
+        587
+      ],
+      "native_certificate_dates_synchronized": true,
+      "native_future_reminders_preserved": true,
+      "next_native_reminder_date_utc": "2026-12-07",
+      "automatic_renewal_policy_days": 28,
+      "actual_systemd_consumer_run": "passed",
+      "consumer_timer_enabled": true,
+      "consumer_timer_active": true,
+      "paired_mx_health_probe_from_this_container": "passed",
+      "deployment_verification": "current_published_certificate_matched; no Xeams restart required",
+      "consumer_timer_role": "secondary"
+    },
+    "mx1.brimstonecottage.uk": {
+      "action": "verified_valid_not_due_28_day_automatic_renewal_enabled",
+      "expiry_utc": "2027-01-06T14:55:44Z",
+      "trusted_matching_live_tls_ports": [
+        443,
+        25,
+        465,
+        587
+      ],
+      "independent_public_smtp_tls_verified_ports": [
+        25,
+        465,
+        587
+      ],
+      "automatic_renewal_policy_days": 28,
+      "actual_systemd_consumer_run": "passed",
+      "consumer_timer_enabled": true,
+      "consumer_timer_active": true,
+      "paired_mx_health_probe_from_this_container": "passed",
+      "deployment_verification": "current_published_certificate_matched; no Xeams restart required",
+      "consumer_timer_role": "primary",
+      "certificate_sha256": "83c1a4cd09dc728e9b4fddaa86212b706f9ca89017de5b31700062a9fe2e2656"
+    },
+    "mx2.brimstonecottage.uk": {
+      "action": "verified_valid_not_due_28_day_automatic_renewal_enabled",
+      "expiry_utc": "2027-01-06T14:32:58Z",
+      "trusted_matching_live_tls_ports": [
+        443,
+        25,
+        465,
+        587
+      ],
+      "independent_public_smtp_tls_verified_ports": [
+        25,
+        465,
+        587
+      ],
+      "automatic_renewal_policy_days": 28,
+      "actual_systemd_consumer_run": "passed",
+      "consumer_timer_enabled": true,
+      "consumer_timer_active": true,
+      "paired_mx_health_probe_from_this_container": "passed",
+      "deployment_verification": "current_published_certificate_matched; no Xeams restart required",
+      "consumer_timer_role": "secondary",
+      "certificate_sha256": "5e8176396326773d25c1046913fc219c87b5164e9b824f606ad272b6989405df"
+    },
+    "work.the-grange.uk": {
+      "action": "renewed_and_deployed_28_day_automatic_renewal_enabled",
+      "old_expiry_utc": "2026-11-30T13:16:56Z",
+      "not_before_utc": "2026-10-28T20:24:25Z",
+      "expiry_utc": "2027-01-26T20:24:24Z",
+      "certificate_sha256": "64044df252958db65e6705b7757aa1f93567d67031ef39c87bee7a008b105f94",
+      "spki_sha256": "1ea8c5425b3cfb85aba4247a9d3a49c723472491d65d38f4df0b2fbe619ebad2",
+      "existing_private_key_and_spki_preserved": true,
+      "actual_systemd_service": "grange-local-lineage@communityserver.service",
+      "actual_systemd_result": "success",
+      "actual_systemd_main_pid_after_completion": 0,
+      "service_event": "renewed_and_deployed",
+      "acme_order_requested": true,
+      "automatic_renewal_policy_days": 28,
+      "final_read_only_check": "passed",
+      "healthy_consumers_verified": 7,
+      "consumers_verified_with_new_leaf": [
+        {
+          "consumer": "Work HTTPS",
+          "port": 443,
+          "protocol": "TLS"
+        },
+        {
+          "consumer": "BulkMail HTTPS",
+          "port": 9443,
+          "protocol": "TLS"
+        },
+        {
+          "consumer": "ONLYOFFICE SMTP",
+          "port": 25,
+          "protocol": "STARTTLS"
+        },
+        {
+          "consumer": "ONLYOFFICE SMTPS",
+          "port": 465,
+          "protocol": "TLS"
+        },
+        {
+          "consumer": "ONLYOFFICE submission",
+          "port": 587,
+          "protocol": "STARTTLS"
+        },
+        {
+          "consumer": "ONLYOFFICE IMAPS",
+          "port": 993,
+          "protocol": "TLSv1.2"
+        },
+        {
+          "consumer": "ONLYOFFICE POP3S",
+          "port": 995,
+          "protocol": "TLSv1.2"
+        }
+      ],
+      "pending_deployment": false,
+      "pending_transaction": false,
+      "next_due_at_epoch": 1795638265,
+      "next_due_at_utc": "2026-11-25T20:24:25Z",
+      "daily_timer_enabled_and_active": true,
+      "retry_timer_enabled_and_active": true,
+      "recorded_next_daily_timer_utc": "2026-10-29T02:20:00Z",
+      "recorded_next_retry_timer_utc": "2026-10-28T21:35:00Z",
+      "independent_public_tls_checks_from_canada": [
+        {
+          "port": 443,
+          "trusted_new_leaf_verified": true,
+          "http_status": 302
+        },
+        {
+          "port": 9443,
+          "trusted_new_leaf_verified": true,
+          "http_status": 200
+        }
+      ],
+      "mail_container_restarted_during_certificate_deployment": true,
+      "mail_container_id_unchanged": true,
+      "mail_container_started_at_utc": "2026-10-28T21:23:02.219166948Z",
+      "initial_pre_upgrade_checks": {
+        "certbot_staging_renewal_dry_run": "passed",
+        "ordinary_certbot_default_policy_result": "not_due_skipped",
+        "existing_certificate_deploy_and_sync_hooks_verified": true
+      },
+      "scheduler_handover": {
+        "old_schedulers_disabled_only_after_full_new_certificate_and_consumer_proof": true,
+        "old_schedulers": [
+          {
+            "scope": "Derby host",
+            "timer": "grange-bulkmail-cert-sync.timer",
+            "enabled": false,
+            "active": false
+          },
+          {
+            "scope": "CT400 host",
+            "timer": "onlyoffice-mail-cert-sync.timer",
+            "enabled": false,
+            "active": false
+          },
+          {
+            "scope": "ONLYOFFICE community container",
+            "timer": "certbot.timer",
+            "enabled": false,
+            "active": false
+          }
+        ],
+        "backup": "/root/bulkmail-ct400-sso-20261028/work-old-schedulers-20261028-rl_69ean"
+      }
+    },
+    "mx_probe_scope": "Trusted TLS on all four private Xeams endpoints per server and independent public SMTP/SMTPS/submission checks from Derby. All twelve public mail endpoints match the installed certificate on their respective MX.",
+    "grange_mx_renewal_method": "Existing public CSRs and the authorised central Cloudflare DNS controller; original private keys stay in their MX containers.",
+    "public_management_https": {
+      "mx1.the-grange.uk": "Connection timed out; private HTTPS certificate verified.",
+      "mx2.the-grange.uk": "Connection timed out; private HTTPS certificate verified.",
+      "mx1.brimstonecottage.uk": "Public TLS endpoint rejects this SNI name; private HTTPS certificate verified.",
+      "mx2.brimstonecottage.uk": {
+        "action": "renewed_and_deployed",
+        "trusted_tls": true,
+        "independent_public_tls_verified": true,
+        "separate_proxy_endpoint": "Canada CT102",
+        "old_expiry_utc": "2026-12-06T16:56:53Z",
+        "expiry_utc": "2027-01-26T19:53:02Z",
+        "certificate_sha256": "d5a3ff6da0cc654d35df999273520b021e04014437380ef5d99f6240814d1c92",
+        "existing_private_key_and_spki_preserved": true,
+        "spki_sha256": "54670ac69011d59af846681b6ea5a8395d636beddba730d245dce5f7b298416a",
+        "webroot_certbot_lineage_present": true,
+        "actual_systemd_result": "success",
+        "acme_order_requested": true,
+        "automatic_renewal_policy_days": 28,
+        "daily_and_retry_timers_enabled_and_active": true,
+        "public_http_status_observed": 403,
+        "public_content_availability_verified": false,
+        "http_403_origin_or_duration_established": false,
+        "backend_http_probe": {
+          "http_status": 403,
+          "www_authenticate_header_present": false,
+          "matches_public_http_status": true,
+          "reproduced_directly_at_configured_xeams_backend": true,
+          "independent_of_new_frontend_certificate_paths": true,
+          "root_cause_or_preexisting_duration_established": false,
+          "address": "10.44.0.10",
+          "port": 5272,
+          "host_header": "mx2.brimstonecottage.uk",
+          "path": "/bimi/brimstone-cottage.svg",
+          "method": "GET"
+        }
+      },
+      "management_exposure_changed": false
+    },
+    "mx_automatic_renewal": {
+      "status": "enabled_and_live_service_checks_passed_for_all_four_mx",
+      "policy_days_from_certificate_not_before": 28,
+      "daily_due_check_with_one_day_lookahead": true,
+      "short_lifetime_expiry_safeguard": true,
+      "hourly_backoff_retry_separate_from_issuance": true,
+      "deployment_retry_does_not_reset_issuance_age_or_place_another_order": true,
+      "central_issuer_and_publisher": "Germany CT280",
+      "private_public_certificate_publisher_enabled_and_active": true,
+      "grange_validation": "Cloudflare DNS-01 through the existing authorised controller; credentials stay on CT280",
+      "brimstone_validation": "HTTP-01 through the existing narrowly scoped reverse-proxy challenge routes",
+      "original_mx_private_keys_remain_local": true,
+      "publisher_transfers_only_public_certificates": true,
+      "exact_san_spki_trust_and_newer_certificate_guards": true,
+      "paired_mx_health_checks_verified": 4,
+      "primary_and_secondary_deployment_windows_staggered": true,
+      "primary_deployment_timer_utc": "hourly at minute 35, with up to 30 seconds jitter",
+      "secondary_deployment_timer_utc": "hourly at minute 05, with up to 30 seconds jitter",
+      "consumer_backups_and_live_tls_rollback_guards_enabled": true,
+      "persistent_timers": true,
+      "issuer_source_sha256": "ce21e755f68c131d0a82ef9417f41ff85a87b1d46bc1ba3fd042d5f56bfab87f",
+      "issuer_source_update_and_read_only_plan": "passed",
+      "issuer_source_backup": "/var/backups/grange-certificate-code/issuer-retry-v3-_y4tap_e",
+      "issuer_daily_timer_enabled_and_active": true,
+      "issuer_retry_timer_enabled_and_active": true,
+      "recorded_next_daily_timer_utc": "2026-10-29T02:10:00Z",
+      "recorded_next_retry_timer_utc": "2026-10-28T21:45:00Z",
+      "future_manual_issuance_required": false,
+      "native_reminders_are_fallback_not_the_renewal_scheduler": true,
+      "temporary_central_http_canaries_removed": 2,
+      "canary_cleanup_scope": "Only the two exact temporary test files; other content unchanged"
+    },
+    "public_mail_policy_https": {
+      "mta-sts.the-grange.uk": {
+        "endpoint": "Germany CT250",
+        "action": "new_certificate_deployed",
+        "source_public_bundle": "mx2.the-grange.uk",
+        "expiry_utc": "2027-01-26T17:58:57Z",
+        "certificate_sha256": "f20fd0a30bc50909e65c64dcd95a77311d1d59fdbfb64cc86a7ca579b8f34332",
+        "existing_private_key_preserved": true,
+        "spki_sha256": "658976573ecd31767bacb950b658d5b6b3e88597478f8e7ad34aff3e0b55268a",
+        "actual_systemd_result": "success",
+        "health_event": "new_certificate_deployed",
+        "transaction_status": "committed",
+        "consumer_service_sha256": "61f3176f4f8a0eea495aa16d93abc2f8925444f02fce4aea936725369d59e4ae",
+        "independent_public_tls_verified_from_derby": true,
+        "independent_public_policy_http_status": 200,
+        "public_policy_content_verified": true,
+        "inherits_source_28_day_issuance_policy": true,
+        "consumer_timer_enabled_and_active": true,
+        "recorded_next_consumer_timer_utc": "2026-10-28T21:20:00Z",
+        "old_germany_host_copy_timer": "grange-mtasts-maintain.timer",
+        "old_copy_timer_disabled_and_inactive": true,
+        "old_copy_maintenance_backup_preserved": true
+      },
+      "mta-sts.brimstonecottage.uk": {
+        "endpoint": "Canada CT102",
+        "action": "renewed_and_deployed",
+        "expiry_utc": "2027-01-26T19:56:40Z",
+        "certificate_sha256": "0a3c181f74944893ed5107d8122939035e909b2a7b4745cac1b3048f5a2e791a",
+        "existing_private_key_and_spki_preserved": true,
+        "spki_sha256": "590da19667b72799b736ba02e382593573f8c1a418ab71feb51ad920b29b494b",
+        "actual_systemd_result": "success",
+        "acme_order_requested": true,
+        "automatic_renewal_policy_days": 28,
+        "daily_and_retry_timers_enabled_and_active": true,
+        "independent_public_tls_verified": true,
+        "public_http_status_observed": 403,
+        "public_policy_content_availability_verified": false,
+        "http_403_origin_or_duration_established": false,
+        "backend_http_probe": {
+          "http_status": 403,
+          "www_authenticate_header_present": false,
+          "matches_public_http_status": true,
+          "reproduced_directly_at_configured_xeams_backend": true,
+          "independent_of_new_frontend_certificate_paths": true,
+          "root_cause_or_preexisting_duration_established": false,
+          "address": "10.44.0.10",
+          "port": 80,
+          "host_header": "mta-sts.brimstonecottage.uk",
+          "path": "/.well-known/mta-sts.txt",
+          "method": "GET"
+        }
+      }
+    },
+    "canada_ct102_renewal_handover": {
+      "both_named_lineages_renewed_and_deployed_through_actual_systemd_services": true,
+      "daily_and_retry_timers_enabled_and_active": 4,
+      "old_certificate_specific_cron_entries_backed_up_and_commented": 2,
+      "cron_change_scope": "Only the two replaced named-lineage renewal entries",
+      "public_tls_and_content_status_are_recorded_separately": true
+    },
+    "ct400_dovecot_tls": {
+      "status": "strong_tls_verified_before_and_after_actual_certificate_driven_container_restart",
+      "reviewed_installer_sha256": "9a73b739e1f0794f62e7c25786eac7d2be9fddff6a1e5947281d8d304d9349cc",
+      "initial_scoped_install": {
+        "certificate_sha256": "1a5610e0a119f37c90b4429e2fcbc84f24b241ef5407a416239fcba759994ed3",
+        "dh_bits": 3072,
+        "protocol": "TLSv1.2",
+        "transaction": "/var/backups/grange-dovecot-dh/transaction-20261028T211731Z-83612a6b053b",
+        "trusted_ports": [
+          993,
+          995
+        ],
+        "verified_at_utc": "2026-10-28T21:17:31Z"
+      },
+      "post_certificate_restart": {
+        "certificate_not_after": "2027-01-26T20:24:24Z",
+        "certificate_sha256": "64044df252958db65e6705b7757aa1f93567d67031ef39c87bee7a008b105f94",
+        "container_start_changed_since_install": true,
+        "container_started_at": "2026-10-28T21:23:02.219166948Z",
+        "dh_bits": 3072,
+        "installed_files": {
+          "main": {
+            "gid": 0,
+            "mode": "0644",
+            "sha256": "728fa392607ebebf576360a44c0bedebdaa921670381883f4c93cb8dbb1ff060",
+            "uid": 0
+          },
+          "parameters": {
+            "gid": 0,
+            "mode": "0644",
+            "sha256": "f8d823cb32adfc3f3ff11f52e0754c89b996dd01aae6896b9aa690f67bebee42",
+            "uid": 0
+          },
+          "template": {
+            "gid": 0,
+            "mode": "0664",
+            "sha256": "6abc57d4f580b95b8f04514f38239fd1df64d6670b3ef1a9cee83b387ee25b13",
+            "uid": 0
+          }
+        },
+        "live_master_count": 1,
+        "protocol": "TLSv1.2",
+        "same_container_id": true,
+        "ssl_parameters_regenerate": 0,
+        "trusted_ports": [
+          993,
+          995
+        ],
+        "unchanged_certificate_spki_sha256": "1ea8c5425b3cfb85aba4247a9d3a49c723472491d65d38f4df0b2fbe619ebad2"
+      },
+      "persistence_scope": "Restart of the same Docker container; a recreated container requires guarded re-enrollment and installation",
+      "reference": "integrations/dovecot-legacy-dh/REVIEWED-MANIFEST.json"
+    },
+    "renewal_rollout_status": "all_requested_mx_work_mail_and_enrolled_public_proxy_certificate_paths_enabled_and_live_verified",
+    "remaining_tls_content_limit": "Both CT102 certificate endpoints have valid renewed TLS but their tested application/policy content returns HTTP403, reproduced directly at the configured Xeams backend; cause and duration are not established."
+  }
+}

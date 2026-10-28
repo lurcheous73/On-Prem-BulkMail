@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily persistent check of the maximum 28-day MX issuance deadline
+
+[Timer]
+OnCalendar=*-*-* 02:10:00 UTC
+AccuracySec=1s
+Persistent=true
+Unit=grange-certificate-issuer.service
+
+[Install]
+WantedBy=timers.target
