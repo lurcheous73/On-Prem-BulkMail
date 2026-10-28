@@ -107,7 +107,7 @@ try:
  (R/'qa-auth.json').write_text(json.dumps(cfg));os.chmod(R/'qa-auth.json',0o600)
  # DELIVERY_ENABLED only permits queue creation in this isolated database; no worker exists.
  q=Q/'app/index.php';q.write_text(q.read_text().replace('const DELIVERY_ENABLED = false;','const DELIVERY_ENABLED = true;'))
- exporter=(REPO/'worker/bulkmail-sent-export.php').read_text().replace('/var/lib/bulkmail',str(Q/'data')).replace('/usr/local/sbin/bulkmail-worker.php',str(Q/'app/bulkmail-worker.php'))
+ exporter=(REPO/'worker/bulkmail-sent-export.php').read_text().replace('/var/lib/bulkmail',str(Q/'data')).replace('/var/www/bulkmail',str(Q/'app')).replace('/usr/local/sbin/bulkmail-worker.php',str(Q/'app/bulkmail-worker.php'))
  (Q/'app/bulkmail-sent-export.php').write_text(exporter)
  worker=(REPO/'worker/bulkmail-worker.php').read_text().replace('/var/lib/bulkmail',str(Q/'data')).replace('/var/www/bulkmail',str(Q/'app'))
  (Q/'app/bulkmail-worker.php').write_text(worker)

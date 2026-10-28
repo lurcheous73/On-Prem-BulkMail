@@ -124,6 +124,7 @@ apt-get install -y \
     php-sqlite3 \
     php-mbstring \
     php-xml \
+    php-curl \
     php-gd \
     poppler-utils \
     imagemagick \

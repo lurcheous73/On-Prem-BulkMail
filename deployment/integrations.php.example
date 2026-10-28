@@ -1,0 +1,27 @@
+<?php
+// Copy to /etc/bulkmail/integrations.php, owned root:www-data, mode 0640.
+// Keep this file outside the webroot. Never commit real tokens or passwords.
+// All optional integrations start disabled. Email delivery is configured separately.
+return [
+    'identity' => [
+        'enabled' => false,
+        'base_url' => 'https://work.the-grange.uk',
+        'directory_token' => '', // ONLYOFFICE Workspace authentication token, not DocSpace.
+        'allow_http' => false,
+    ],
+    'sms' => [
+        'enabled' => false,
+        'base_url' => '', // Example: http://192.168.1.50:8080 (SMSGate Local Server).
+        'username' => '',
+        'password' => '',
+        'allow_http' => true, // SMSGate LAN API uses HTTP; restrict access on the private network.
+        'min_interval_seconds' => 8,
+    ],
+    'whatsapp' => [
+        'enabled' => false,
+        'base_url' => 'http://127.0.0.1:8787',
+        'token' => '', // Match the gateway GATEWAY_TOKEN, at least 32 random characters.
+        'allow_http' => true,
+        'min_interval_seconds' => 8,
+    ],
+];

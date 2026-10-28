@@ -1,0 +1,44 @@
+{
+  "release": "SMS Gate, Baileys and CT400 account integration",
+  "date": "2026-10-28",
+  "base_commit": "35e973d85c884c64dbaeb8eae9d4d92fef328bfb",
+  "source_verification": {
+    "existing_contact_http_checks": 31,
+    "existing_full_mailer_http_checks": 40,
+    "messaging_queue_adapter_checks": 81,
+    "identity_database_checks": 53,
+    "identity_http_checks": 20,
+    "gateway_node_checks": 20,
+    "messaging_http_checks": 26,
+    "private_configuration_checks": 6,
+    "upgrade_rollback_checks": 31,
+    "php_syntax": "passed",
+    "shell_syntax": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed",
+    "synthetic_data_only": true,
+    "real_messages_sent": 0
+  },
+  "preservation_verified": [
+    "Existing user IDs, usernames, password hashes, roles, active flags and profiles",
+    "Existing contacts, groups, ownership and email history",
+    "Existing email worker and delivery configuration",
+    "Public unsubscribe with an expired CT400 session",
+    "SQLite WAL ownership with an existing www-data reader",
+    "Code rollback without restoring an old live database"
+  ],
+  "defaults": {
+    "sms_sending": "disabled",
+    "whatsapp_connection": "disabled",
+    "whatsapp_sending": "disabled",
+    "ct400_login": "disabled",
+    "automatic_channel_grants": false
+  },
+  "live_activation_outstanding": [
+    "Android handset and SMSGate local API credentials",
+    "Pair intended WhatsApp account by QR",
+    "Configure CT400 directory access and verify explicit account links",
+    "Authorised single-recipient live delivery tests"
+  ],
+  "deployment": "Pending staging rehearsal at the time of this source verification record"
+}

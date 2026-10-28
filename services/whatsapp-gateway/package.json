@@ -1,0 +1,17 @@
+{
+  "name": "on-prem-bulkmail-whatsapp-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local, opt-in Baileys transport for On-Prem BulkMail",
+  "engines": { "node": ">=24.22.1 <25" },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "baileys": "7.0.0-rc14",
+    "proper-lockfile": "4.1.2",
+    "qrcode": "1.5.4"
+  }
+}

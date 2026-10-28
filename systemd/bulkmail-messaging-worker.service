@@ -1,0 +1,28 @@
+[Unit]
+Description=BulkMail SMSGate and WhatsApp queue worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/lib/bulkmail
+ExecStart=/usr/bin/php /usr/local/sbin/bulkmail-messaging-worker.php
+Environment=BULKMAIL_INTEGRATIONS_CONFIG=/etc/bulkmail/integrations.php
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=50
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/bulkmail
+RestrictSUIDSGID=true
+LockPersonality=true
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target
