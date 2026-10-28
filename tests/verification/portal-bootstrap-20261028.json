@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-28",
+  "status": "deployed_independent_review_go_fresh_staff_browser_outcome_pending",
+  "deployment": {
+    "host": "CT300",
+    "reviewed_source_hashes_verified_after_installation": true,
+    "php_lint_passed": true,
+    "php_fpm_gracefully_reloaded": true,
+    "protected_rollback_backup_created": true,
+    "php_session_auto_start": false,
+    "php_session_save_handler": "files",
+    "account_data_changed": false,
+    "fresh_staff_browser_success_observed": false
+  },
+  "independent_review": {
+    "source_hashes_verified": true,
+    "bootstrap_cases_rerun_and_passed": 5,
+    "exact_route_exemptions_and_session_independence_verified": true,
+    "broker_authentication_and_diagnostic_secrecy_verified": true,
+    "source_blockers": 0
+  },
+  "observed_runtime_evidence_supplied_by_operator": {
+    "real_browser_authorize_requests_reached_bulkmail": true,
+    "real_browser_authorize_requests_returned_nginx_499": true,
+    "affected_requests_had_no_broker_or_identity_diagnostic": true,
+    "controlled_invalid_cookie_api_check_completed": true,
+    "controlled_invalid_cookie_api_http_status": 401,
+    "controlled_invalid_cookie_api_elapsed_ms": 49,
+    "live_browser_root_cause_not_yet_proven": true
+  },
+  "local_reproduction": {
+    "fixture": "tests/identity-bootstrap-http.py",
+    "original_authorize_route_blocked_behind_held_local_php_session": true,
+    "original_authorize_deadline_seconds": 1,
+    "corrected_authorize_completes_while_same_session_remains_locked": true,
+    "corrected_authorize_does_not_accept_the_local_session_as_portal_identity": true,
+    "corrected_token_exchange_still_requires_client_authentication": true,
+    "ordinary_bulkmail_route_keeps_its_existing_session_lock": true,
+    "sqlite_lock_is_distinguishable_from_session_lock": true,
+    "request_diagnostics_reject_secret_values_and_unrecognized_labels": true,
+    "tests_passed": 5,
+    "remote_services_or_real_credentials_used": false
+  },
+  "scope": {
+    "session_start_exemptions": [
+      "portal_sso_authorize",
+      "portal_sso_token"
+    ],
+    "broker_cookie_client_pkce_redirect_state_revocation_checks_unchanged": true,
+    "ordinary_session_options_and_login_logout_behaviour_unchanged": true,
+    "account_password_role_or_ownership_updates": 0,
+    "message_sends_or_queues": 0,
+    "diagnostic_fields": [
+      "allowlisted_stage",
+      "allowlisted_route",
+      "process_id",
+      "elapsed_milliseconds",
+      "allowlisted_method",
+      "portal_cookie_presence_boolean",
+      "session_cookie_presence_boolean",
+      "allowlisted_fetch_destination_and_site",
+      "allowlisted_auto_login_gate_reason",
+      "shutdown_status_last_stage_aborted_and_fatal_booleans"
+    ],
+    "diagnostics_exclude": [
+      "urls_and_query_values",
+      "cookies_tokens_passwords_and_hashes",
+      "session_ids_and_contents",
+      "account_and_profile_identities",
+      "message_or_remote_response_bodies",
+      "exception_messages"
+    ]
+  },
+  "regressions_passed": {
+    "portal_identity": 51,
+    "account_identity": 53,
+    "broker_exchange": 25,
+    "identity_diagnostic_secrecy": 24,
+    "real_local_https_portal_routes": 32,
+    "real_local_http_identity_routes": 20,
+    "real_local_php_bootstrap_cases": 5
+  },
+  "source_sha256": {
+    "previous_app_index_php": "963f644f4ed892074b2d57eb7958175830f3bde4af994b7c9d2ca4c326adc0b9",
+    "app/index.php": "209c11a5b8953971e64b5db1ec5f027e24b9798236cfe556c27a07ec9b6766a0",
+    "app/bulkmail-identity.php": "cd6f68c96e3f4a8232f2e084d93673e730a49abefc2c692cfd782afbadee70de",
+    "app/bulkmail-request-diagnostics.php": "4513c43e3ebf9ee0a408028a923f002adca611210ab15f8b6843dff5bc5726f7",
+    "tests/identity-bootstrap-http.py": "b4a4d9874d01b58717ee849b677df79f695e8ab18ac2008f6a397831247db578"
+  },
+  "deployment_note": "The three reviewed source files are installed and PHP-FPM has been gracefully reloaded. A fresh normal user browser request is still required to verify the real sign-in result; the local lock reproduction alone does not prove the cause of the earlier Safari aborts."
+}

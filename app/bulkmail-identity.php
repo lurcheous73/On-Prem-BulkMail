@@ -245,12 +245,18 @@ function bm_identity_try_portal_login(PDO $db, ?callable $transport = null): ?ar
 }
 
 /** Automatic sign-in never authenticates a POST or replaces a current local session. */
-function bm_identity_should_auto_login(string $page): bool {
+function bm_identity_should_auto_login(string $page, ?string &$reason = null): bool {
     $cfg = bm_identity_config();
-    return ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET'
-        && empty($_SESSION['user_id']) && empty($_SESSION['portal_auto_login_suppressed'])
-        && !in_array($page, ['logout','unsubscribe','portal_sso_authorize','portal_sso_token'], true)
-        && ($cfg['enabled'] ?? false) === true && ($cfg['auto_login'] ?? false) === true;
+    $reason = match (true) {
+        ($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET' => 'method_not_get',
+        !empty($_SESSION['user_id']) => 'session_present',
+        !empty($_SESSION['portal_auto_login_suppressed']) => 'logout_suppressed',
+        in_array($page, ['logout','unsubscribe','portal_sso_authorize','portal_sso_token'], true) => 'route_excluded',
+        ($cfg['enabled'] ?? false) !== true => 'integration_disabled',
+        ($cfg['auto_login'] ?? false) !== true => 'auto_login_disabled',
+        default => 'eligible',
+    };
+    return $reason === 'eligible';
 }
 
 /** Establish only an already verified account; keep raw portal credentials out of session state. */

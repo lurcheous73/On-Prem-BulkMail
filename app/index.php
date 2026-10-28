@@ -1,12 +1,21 @@
 <?php
 declare(strict_types=1);
 
-session_start([
-    'cookie_httponly' => true,
-    'cookie_samesite' => 'Lax',
-    'cookie_secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-    'use_strict_mode' => true,
-]);
+require_once __DIR__.'/bulkmail-request-diagnostics.php';
+bm_request_diagnostic('ingress');
+// Both broker routes authenticate independently and always exit their handler.
+// They must not wait for or inherit an unrelated local BulkMail session.
+if (in_array($_GET['page'] ?? null, ['portal_sso_authorize','portal_sso_token'], true)) {
+    bm_request_diagnostic('session_skipped_broker');
+} else {
+    session_start([
+        'cookie_httponly' => true,
+        'cookie_samesite' => 'Lax',
+        'cookie_secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'use_strict_mode' => true,
+    ]);
+    bm_request_diagnostic('session_ready');
+}
 
 const APP_NAME = 'The Grange Bulk Mail';
 const DB_FILE = '/var/lib/bulkmail/bulkmail.sqlite';
@@ -23,6 +32,7 @@ $db = new PDO('sqlite:' . DB_FILE, null, null, [
 ]);
 $db->exec('PRAGMA foreign_keys=ON');
 $db->exec('PRAGMA busy_timeout=5000');
+bm_request_diagnostic('database_ready');
 require_once __DIR__.'/bulkmail-integrations.php';
 require_once __DIR__.'/bulkmail-identity.php';
 require_once __DIR__.'/bulkmail-portal-sso.php';
@@ -40,6 +50,7 @@ $db->exec('CREATE TABLE IF NOT EXISTS mailing_recipient_attachments (
  FOREIGN KEY(mailing_recipient_id) REFERENCES mailing_recipients(id) ON DELETE CASCADE
 )');
 $db->exec('CREATE INDEX IF NOT EXISTS idx_recipient_attachments_recipient ON mailing_recipient_attachments(mailing_recipient_id)');
+bm_request_diagnostic('schema_ready');
 
 function h(?string $v): string { return htmlspecialchars($v ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function now(): string { return gmdate('Y-m-d H:i:s'); }
@@ -232,13 +243,16 @@ $page=$_GET['page'] ?? 'home';
 
 // Broker routes verify their own portal/client authentication. A backend token
 // request must never inherit a local login or redirect to the browser login form.
+bm_request_diagnostic('broker_dispatch');
 bm_portal_sso_handle($db, $page);
 
 // Re-read access rights without changing account rows or passwords.
 $portalSessionRejected=false;
 if (logged_in()) {
+    bm_request_diagnostic('session_validation_start');
     $sessionUser=user($db,(int)$_SESSION['user_id']);
     if (!$sessionUser || !(int)$sessionUser['active'] || !bm_identity_validate_session($db)) {
+        bm_request_diagnostic('session_validation_failed');
         $portalSessionRejected=($_SESSION['authentication_method'] ?? '')==='ct400_portal';
         $_SESSION=[];
         session_regenerate_id(true);
@@ -247,15 +261,20 @@ if (logged_in()) {
     } else {
         $_SESSION['is_admin']=(bool)$sessionUser['is_admin'];
         $_SESSION['display_name']=$sessionUser['display_name'];
+        bm_request_diagnostic('session_validation_complete');
     }
 }
 
-if (!$portalSessionRejected && bm_identity_should_auto_login($page)) {
+$autoLoginReason='portal_session_rejected';
+$autoLoginEligible=!$portalSessionRejected && bm_identity_should_auto_login($page, $autoLoginReason);
+bm_request_diagnostic('auto_login_gate', $autoLoginReason);
+if ($autoLoginEligible) {
     $portalAccount=bm_identity_try_portal_login($db);
     if ($portalAccount) {
         bm_identity_start_session($portalAccount, 'ct400_portal');
         audit($db, 'login');
     }
+    bm_request_diagnostic('auto_login_complete', $portalAccount ? 'login_established' : 'login_unavailable');
 }
 
 // Public unsubscribe endpoint. No login required.
