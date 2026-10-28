@@ -25,8 +25,10 @@ $db->exec('PRAGMA foreign_keys=ON');
 $db->exec('PRAGMA busy_timeout=5000');
 require_once __DIR__.'/bulkmail-integrations.php';
 require_once __DIR__.'/bulkmail-identity.php';
+require_once __DIR__.'/bulkmail-portal-sso.php';
 require_once __DIR__.'/bulkmail-messaging-core.php';
 bm_identity_schema($db);
+bm_portal_sso_schema($db);
 bm_message_schema($db);
 $db->exec('CREATE TABLE IF NOT EXISTS mailing_recipient_attachments (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -228,10 +230,16 @@ function layout_end(): void { echo '</main></body></html>'; }
 
 $page=$_GET['page'] ?? 'home';
 
+// Broker routes verify their own portal/client authentication. A backend token
+// request must never inherit a local login or redirect to the browser login form.
+bm_portal_sso_handle($db, $page);
+
 // Re-read access rights without changing account rows or passwords.
+$portalSessionRejected=false;
 if (logged_in()) {
     $sessionUser=user($db,(int)$_SESSION['user_id']);
     if (!$sessionUser || !(int)$sessionUser['active'] || !bm_identity_validate_session($db)) {
+        $portalSessionRejected=($_SESSION['authentication_method'] ?? '')==='ct400_portal';
         $_SESSION=[];
         session_regenerate_id(true);
         // Public opt-outs and the login form must still work with an expired account session.
@@ -239,6 +247,14 @@ if (logged_in()) {
     } else {
         $_SESSION['is_admin']=(bool)$sessionUser['is_admin'];
         $_SESSION['display_name']=$sessionUser['display_name'];
+    }
+}
+
+if (!$portalSessionRejected && bm_identity_should_auto_login($page)) {
+    $portalAccount=bm_identity_try_portal_login($db);
+    if ($portalAccount) {
+        bm_identity_start_session($portalAccount, 'ct400_portal');
+        audit($db, 'login');
     }
 }
 
@@ -262,6 +278,16 @@ if ($page==='unsubscribe') {
 if ($page==='login') {
     if (logged_in()) redirect('?');
     if ($_SERVER['REQUEST_METHOD']==='POST') {
+        if (($_POST['login_method'] ?? '')==='portal') {
+            check_csrf();
+            $portalAccount=bm_identity_try_portal_login($db);
+            if ($portalAccount) {
+                bm_identity_start_session($portalAccount, 'ct400_portal');
+                audit($db, 'login'); redirect('?');
+            }
+            flash('Sign in to the work portal using a linked account, then try work sign-in again. Your local login is still available.', 'error');
+            redirect('?page=login');
+        }
         check_csrf(); $username=trim($_POST['username'] ?? ''); $password=$_POST['password'] ?? ''; $addr=ip();
         $s=$db->prepare("SELECT COUNT(*) FROM login_attempts WHERE username=? AND ip_address=? AND success=0 AND created_at >= datetime('now','-15 minutes')"); $s->execute([$username,$addr]);
         if ((int)$s->fetchColumn()>=8) { flash('Too many failed attempts. Try again later.','error'); redirect('?page=login'); }
@@ -276,15 +302,7 @@ if ($page==='login') {
         }
         $a=$db->prepare('INSERT INTO login_attempts(username,ip_address,success) VALUES(?,?,?)'); $a->execute([$username,$addr,$ok?1:0]);
         if ($ok) {
-            session_regenerate_id(true);
-            $_SESSION['user_id']=(int)$u['id']; $_SESSION['display_name']=$u['display_name']; $_SESSION['is_admin']=(bool)$u['is_admin'];
-            $_SESSION['authentication_method']=$method;
-            unset($_SESSION['authenticated_ct400_id'],$_SESSION['authenticated_ct400_issuer'],$_SESSION['authenticated_ct400_at']);
-            if ($method==='ct400') {
-                $_SESSION['authenticated_ct400_id']=$u['_ct400_id'];
-                $_SESSION['authenticated_ct400_issuer']=$u['_ct400_issuer'];
-                $_SESSION['authenticated_ct400_at']=time();
-            }
+            bm_identity_start_session($u, $method);
             audit($db,'login'); redirect('?');
         }
         flash('Login failed.','error');
@@ -293,9 +311,19 @@ if ($page==='login') {
     if (bm_integration_config()['identity']['enabled']) echo '<label>Account</label><select name="login_method"><option value="local">Existing Bulk Mail account</option><option value="ct400">Linked CT400 work account</option></select>';
     echo '<label>Username</label><input name="username" autocomplete="username" required autofocus><label>Password</label><input type="password" name="password" autocomplete="current-password" required>';
     if (bm_integration_config()['identity']['enabled']) echo '<label>CT400 verification code (if required)</label><input name="code" inputmode="numeric" autocomplete="one-time-code"><p class="small">Your existing Bulk Mail account continues to work. Work accounts must first be linked by an administrator.</p>';
-    echo '<p><button>Log in</button></p></form></div>'; layout_end(); exit;
+    echo '<p><button>Log in</button></p></form>';
+    $identityConfig=bm_identity_config();
+    if (($identityConfig['enabled'] ?? false)===true && ($identityConfig['auto_login'] ?? false)===true) {
+        echo '<hr><form method="post"><input type="hidden" name="csrf" value="'.csrf().'"><input type="hidden" name="login_method" value="portal"><button class="secondary">Sign in with work portal</button><p class="small">Use the account already signed in at your work portal. Your existing Bulk Mail password still works above.</p></form>';
+    }
+    echo '</div>'; layout_end(); exit;
 }
-if ($page==='logout') { if (logged_in()) audit($db,'logout'); session_destroy(); redirect('?page=login'); }
+if ($page==='logout') {
+    if (logged_in()) audit($db,'logout');
+    $_SESSION=[]; session_regenerate_id(true);
+    $_SESSION['portal_auto_login_suppressed']=true;
+    redirect('?page=login');
+}
 require_login();
 
 bm_identity_handle($db,$page);

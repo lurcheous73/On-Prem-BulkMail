@@ -6,9 +6,12 @@ function bm_integration_config(): array {
     $defaults = [
         'identity' => [
             'enabled' => false,
+            'auto_login' => false,
             'base_url' => '',
             'directory_token' => '',
             'allow_http' => false,
+            'session_ttl' => 3600,
+            'portal_revalidate_seconds' => 60,
         ],
         'sms' => [
             'enabled' => false,
@@ -44,6 +47,7 @@ function bm_integration_config(): array {
             // A literal boolean true is required; the string "false" must never enable sending.
             $defaults[$section]['enabled'] = ($defaults[$section]['enabled'] === true);
         }
+        $defaults['identity']['auto_login'] = ($defaults['identity']['auto_login'] === true);
         return $defaults;
     } catch (Throwable $e) {
         // Local email and local login remain usable when an optional integration is misconfigured.
@@ -51,6 +55,7 @@ function bm_integration_config(): array {
         error_log('BulkMail: integrations configuration could not be loaded; integrations disabled.');
         foreach ($defaults as &$section) $section['enabled'] = false;
         unset($section);
+        $defaults['identity']['auto_login'] = false;
         return $defaults;
     }
 }

@@ -9,6 +9,7 @@ ROOT_PREFIX=""
 NO_SERVICES=0
 PHP_FPM_SERVICE="${BULKMAIL_PHP_FPM_SERVICE:-php8.2-fpm.service}"
 BASELINE_SHA="7602fd20458f8c8ab61b0c3ec9b36fbec97bb311d0a594d15cf032224e1b501e"
+MESSAGING_RELEASE_SHA="0abb5c3e0be613803b9c911338cf8bcff0ae91e06741a8148eca4ea8940d3562"
 
 fail() { printf '%s\n' "ERROR: $*" >&2; exit 1; }
 while (($#)); do
@@ -40,7 +41,7 @@ BACKUP_BASE="$ROOT_PREFIX/var/backups/bulkmail"
 for tool in php python3 sha256sum install cp mv flock mktemp; do command -v "$tool" >/dev/null || fail "Required program unavailable: $tool"; done
 id www-data >/dev/null 2>&1 || fail 'The www-data application user is required.'
 php -r 'exit(PHP_VERSION_ID>=80200 && extension_loaded("pdo_sqlite") && extension_loaded("mbstring") && extension_loaded("curl") && extension_loaded("posix") ? 0 : 1);' || fail 'PHP 8.2+ with SQLite, mbstring, cURL and POSIX is required.'
-APP_FILES=(bulkmail-integrations.php bulkmail-identity.php bulkmail-messaging-core.php bulkmail-messaging.php index.php)
+APP_FILES=(bulkmail-integrations.php bulkmail-identity.php bulkmail-portal-sso.php bulkmail-messaging-core.php bulkmail-messaging.php index.php)
 for file in "${APP_FILES[@]}"; do
     [[ -f "$SOURCE_DIR/app/$file" ]] || fail "Missing application file: $file"
     php -l "$SOURCE_DIR/app/$file" >/dev/null || fail "PHP syntax failed: $file"
@@ -54,7 +55,7 @@ INCOMING_SHA="$(sha256sum "$SOURCE_DIR/app/index.php" | cut -d' ' -f1)"
 guard_index() {
     local installed_sha
     installed_sha="$(sha256sum "$APP_DIR/index.php" | cut -d' ' -f1)"
-    [[ "$installed_sha" == "$BASELINE_SHA" || "$installed_sha" == "$INCOMING_SHA" ]] || fail 'Installed index.php differs from the reviewed baseline and this release. Reconcile local changes before upgrading.'
+    [[ "$installed_sha" == "$BASELINE_SHA" || "$installed_sha" == "$MESSAGING_RELEASE_SHA" || "$installed_sha" == "$INCOMING_SHA" ]] || fail 'Installed index.php differs from the reviewed baselines and this release. Reconcile local changes before upgrading.'
 }
 guard_index
 FIRST_INSTALL=1
@@ -88,7 +89,7 @@ flock -n 9 || fail 'Another messaging upgrade is already running.'
 guard_index
 
 TARGETS=(var/www/bulkmail/index.php)
-for file in bulkmail-integrations.php bulkmail-identity.php bulkmail-messaging-core.php bulkmail-messaging.php; do TARGETS+=("var/www/bulkmail/$file"); done
+for file in bulkmail-integrations.php bulkmail-identity.php bulkmail-portal-sso.php bulkmail-messaging-core.php bulkmail-messaging.php; do TARGETS+=("var/www/bulkmail/$file"); done
 TARGETS+=(etc/bulkmail/integrations.php usr/local/sbin/bulkmail-messaging-worker.php etc/systemd/system/bulkmail-messaging-worker.service)
 for relative in "${TARGETS[@]}"; do
     target="$ROOT_PREFIX/$relative"
@@ -209,7 +210,7 @@ fi
 php "$SOURCE_DIR/deployment/migrate-integrations.php" --db="$DB_FILE" --app-dir="$SOURCE_DIR/app"
 
 # Install every new dependency first. The index is the final application switch.
-for file in bulkmail-integrations.php bulkmail-identity.php bulkmail-messaging-core.php bulkmail-messaging.php; do
+for file in bulkmail-integrations.php bulkmail-identity.php bulkmail-portal-sso.php bulkmail-messaging-core.php bulkmail-messaging.php; do
     atomic_install "$SOURCE_DIR/app/$file" "$APP_DIR/$file" 0644 root
 done
 atomic_install "$SOURCE_DIR/worker/bulkmail-messaging-worker.php" "$WORKER_FILE" 0755 root

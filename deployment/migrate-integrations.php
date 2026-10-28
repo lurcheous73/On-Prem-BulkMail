@@ -12,7 +12,7 @@ try {
     if (!is_file($dbFile) || is_link($dbFile) || !is_readable($dbFile) || !is_writable($dbFile)) {
         throw new RuntimeException('Existing writable database required.');
     }
-    foreach (['bulkmail-identity.php','bulkmail-messaging-core.php'] as $file) {
+    foreach (['bulkmail-identity.php','bulkmail-portal-sso.php','bulkmail-messaging-core.php'] as $file) {
         if (!is_file($appDir.'/'.$file)) throw new RuntimeException('Migration module unavailable.');
         require_once $appDir.'/'.$file;
     }
@@ -44,6 +44,7 @@ try {
     $fingerprintBefore=hash('sha256',serialize([$columnsBefore,$usersBefore]));
     $stage='additive-schema';
     bm_identity_schema($db);
+    bm_portal_sso_schema($db);
     bm_message_schema($db);
     $stage='user-preservation-check';
     $usersAfter=$db->query('SELECT * FROM users ORDER BY id')->fetchAll();

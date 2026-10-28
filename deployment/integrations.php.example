@@ -5,9 +5,19 @@
 return [
     'identity' => [
         'enabled' => false,
+        'auto_login' => false, // Reuse this browser's verified work portal session.
         'base_url' => 'https://work.the-grange.uk',
-        'directory_token' => '', // ONLYOFFICE Workspace authentication token, not DocSpace.
+        'directory_token' => '', // Optional; otherwise verify the operator's current portal cookie.
         'allow_http' => false,
+        'portal_revalidate_seconds' => 60,
+        'sso_clients' => [
+            'meet-host' => [
+                'enabled' => false,
+                'secret' => '', // Generate privately; share only with the meeting backend.
+                'redirect_uri' => 'https://meet.the-grange.uk/host/auth/ct400/callback',
+                'session_seconds' => 900,
+            ],
+        ],
     ],
     'sms' => [
         'enabled' => false,

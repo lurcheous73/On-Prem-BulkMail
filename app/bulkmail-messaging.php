@@ -194,7 +194,9 @@ function bm_messaging_history(PDO $db,int $owner): void {
         $ownerSnapshot=bm_messaging_campaign_identity($c,'owner');
         echo '<section class="card"><h2>'.bm_messaging_label($c['channel']).' campaign #'.$id.'</h2>'
             .'<p>Requested by <strong>'.h($actorSnapshot['display_name']).'</strong> for <strong>'.h($ownerSnapshot['display_name']).'</strong> at '.h($c['created_at']).' UTC.</p>'
-            .'<p class="small">Sign-in: '.(($actorSnapshot['authentication_method'] ?? 'local')==='ct400'?'CT400 verified':'Local password')
+            .'<p class="small">Sign-in: '.match ($actorSnapshot['authentication_method'] ?? 'local') {
+                'ct400'=>'CT400 verified', 'ct400_portal'=>'Work portal verified', default=>'Local password'
+            }
             .(!empty($actorSnapshot['ct400_id'])?'. Linked CT400 sender: '.h($actorSnapshot['ct400_id']):'')
             .(!empty($ownerSnapshot['ct400_id'])?'. Linked CT400 owner: '.h($ownerSnapshot['ct400_id']):'').'.</p>'
             .'<div style="white-space:pre-wrap;overflow-wrap:anywhere">'.h($c['body_text']).'</div>'

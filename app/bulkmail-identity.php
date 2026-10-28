@@ -42,8 +42,8 @@ function bm_identity_schema(PDO $db): void {
 function bm_identity_config(): array {
     $all = function_exists('bm_integration_config') ? bm_integration_config() : [];
     return array_replace([
-        'enabled'=>false, 'base_url'=>'', 'directory_token'=>'',
-        'allow_http'=>false, 'session_ttl'=>3600,
+        'enabled'=>false, 'auto_login'=>false, 'base_url'=>'', 'directory_token'=>'',
+        'allow_http'=>false, 'session_ttl'=>3600, 'portal_revalidate_seconds'=>60,
     ], is_array($all['identity'] ?? null) ? $all['identity'] : []);
 }
 
@@ -143,11 +143,91 @@ function bm_identity_lookup(string $lookup, ?callable $transport = null): array 
         throw new BMIdentityException('Enter an exact CT400 username or email address.');
     }
     $token = trim((string)$cfg['directory_token']);
-    if ($token === '') throw new BMIdentityException('CT400 directory access has not been configured.');
+    if ($token === '') {
+        // A local administrator may use their real, currently verified portal
+        // cookie for this request. Never retain or manufacture a directory token.
+        bm_identity_portal_profile($cfg, $transport);
+        $token = bm_identity_portal_cookie();
+    }
     $path = filter_var($lookup, FILTER_VALIDATE_EMAIL)
         ? '/api/2.0/people/email.json?email='.rawurlencode($lookup)
         : '/api/2.0/people/'.rawurlencode($lookup).'.json';
     return bm_identity_profile(bm_identity_request($cfg, 'GET', $path, null, $token, $transport));
+}
+
+/** Read only the cookie actually supplied by this browser request. */
+function bm_identity_portal_cookie(): string {
+    $token = $_COOKIE['asc_auth_key'] ?? '';
+    return is_string($token) && preg_match('/^[\x21-\x7e]{1,16384}$/D', $token) ? $token : '';
+}
+
+/** Validate the current portal identity over HTTPS, never from a URL/form claim. */
+function bm_identity_portal_profile(array $cfg, ?callable $transport = null): array {
+    if (($cfg['enabled'] ?? false) !== true) throw new BMIdentityException('CT400 integration is disabled.');
+    $issuer = bm_identity_issuer($cfg);
+    if (strtolower((string)parse_url($issuer, PHP_URL_SCHEME)) !== 'https') {
+        throw new BMIdentityException('Work portal sign-in requires an HTTPS portal connection.');
+    }
+    $token = bm_identity_portal_cookie();
+    if ($token === '') throw new BMIdentityException('Sign in to the work portal before using its directory.');
+    return bm_identity_profile(bm_identity_request($cfg, 'GET', '/api/2.0/people/@self.json', null, $token, $transport));
+}
+
+/** Only an explicit active identity link can resolve an existing local account. */
+function bm_identity_linked_account(PDO $db, array $profile, string $issuer): ?array {
+    $stmt = $db->prepare("SELECT u.* FROM users u JOIN user_identity_links l ON l.user_id=u.id
+        WHERE l.provider='ct400' AND l.issuer=? AND l.external_id=? AND l.active=1
+        AND l.external_login_enabled=1 AND u.active=1");
+    $stmt->execute([$issuer,$profile['id']]);
+    $local = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$local) return null;
+    $local['_ct400_id'] = $profile['id'];
+    $local['_ct400_issuer'] = $issuer;
+    $local['_ct400_profile'] = $profile;
+    return $local;
+}
+
+/** Pure verification for BulkMail and the portal broker: no provisioning/session writes. */
+function bm_identity_try_portal_login(PDO $db, ?callable $transport = null): ?array {
+    $cfg = bm_identity_config();
+    if (($cfg['enabled'] ?? false) !== true || ($cfg['auto_login'] ?? false) !== true || bm_identity_portal_cookie() === '') return null;
+    try {
+        $profile = bm_identity_portal_profile($cfg, $transport);
+        return bm_identity_linked_account($db, $profile, bm_identity_issuer($cfg));
+    } catch (Throwable $e) { return null; }
+}
+
+/** Automatic sign-in never authenticates a POST or replaces a current local session. */
+function bm_identity_should_auto_login(string $page): bool {
+    $cfg = bm_identity_config();
+    return ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET'
+        && empty($_SESSION['user_id']) && empty($_SESSION['portal_auto_login_suppressed'])
+        && !in_array($page, ['logout','unsubscribe','portal_sso_authorize','portal_sso_token'], true)
+        && ($cfg['enabled'] ?? false) === true && ($cfg['auto_login'] ?? false) === true;
+}
+
+/** Establish only an already verified account; keep raw portal credentials out of session state. */
+function bm_identity_start_session(array $account, string $method): void {
+    if (!in_array($method, ['local','ct400','ct400_portal'], true)) throw new BMIdentityException('Unsupported sign-in method.');
+    // A fresh identity cannot inherit another user's preview, recipient choices,
+    // pending send flag or CSRF state. Saved work remains owned in the database.
+    if ((int)($_SESSION['user_id'] ?? 0) !== (int)$account['id']) $_SESSION=[];
+    if (session_status() === PHP_SESSION_ACTIVE) session_regenerate_id(true);
+    $_SESSION['user_id'] = (int)$account['id'];
+    $_SESSION['display_name'] = $account['display_name'];
+    $_SESSION['is_admin'] = (bool)$account['is_admin'];
+    $_SESSION['authentication_method'] = $method;
+    unset($_SESSION['authenticated_ct400_id'], $_SESSION['authenticated_ct400_issuer'], $_SESSION['authenticated_ct400_at'],
+        $_SESSION['portal_cookie_fingerprint'], $_SESSION['portal_checked_at'], $_SESSION['portal_auto_login_suppressed']);
+    if ($method !== 'local') {
+        $_SESSION['authenticated_ct400_id'] = $account['_ct400_id'];
+        $_SESSION['authenticated_ct400_issuer'] = $account['_ct400_issuer'];
+        $_SESSION['authenticated_ct400_at'] = time();
+    }
+    if ($method === 'ct400_portal') {
+        $_SESSION['portal_cookie_fingerprint'] = hash('sha256', bm_identity_portal_cookie());
+        $_SESSION['portal_checked_at'] = time();
+    }
 }
 
 function bm_identity_admin(PDO $db): int {
@@ -249,22 +329,14 @@ function bm_identity_try_login(PDO $db, string $username, string $password, stri
         $token = (string)($auth['token'] ?? '');
         if ($token === '' || strlen($token)>16384 || preg_match('/[\r\n]/', $token)) return null;
         $profile = bm_identity_profile(bm_identity_request($cfg, 'GET', '/api/2.0/people/@self.json', null, $token, $transport));
-        $issuer = bm_identity_issuer($cfg);
-        $stmt = $db->prepare("SELECT u.* FROM users u JOIN user_identity_links l ON l.user_id=u.id
-            WHERE l.provider='ct400' AND l.issuer=? AND l.external_id=? AND l.active=1
-            AND l.external_login_enabled=1 AND u.active=1");
-        $stmt->execute([$issuer,$profile['id']]);
-        $local = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$local) return null;
-        $local['_ct400_id'] = $profile['id'];
-        $local['_ct400_issuer'] = $issuer;
-        return $local;
+        return bm_identity_linked_account($db, $profile, bm_identity_issuer($cfg));
     } catch (Throwable $e) { return null; }
 }
 
-/** Linked login revocation is immediate locally; external sessions expire in an hour. */
-function bm_identity_validate_session(PDO $db): bool {
-    if (($_SESSION['authentication_method'] ?? 'local') !== 'ct400') return true;
+/** Local revocation is immediate; portal credentials are rechecked within a bounded interval. */
+function bm_identity_validate_session(PDO $db, ?callable $transport = null): bool {
+    $method = $_SESSION['authentication_method'] ?? 'local';
+    if (!in_array($method, ['ct400','ct400_portal'], true)) return true;
     $cfg = bm_identity_config();
     $issued = (int)($_SESSION['authenticated_ct400_at'] ?? 0);
     $ttl = max(60, min(86400, (int)$cfg['session_ttl']));
@@ -275,7 +347,23 @@ function bm_identity_validate_session(PDO $db): bool {
         WHERE l.user_id=? AND l.provider='ct400' AND l.issuer=? AND l.external_id=?
         AND l.active=1 AND l.external_login_enabled=1 AND u.active=1");
     $stmt->execute([(int)($_SESSION['user_id'] ?? 0),$issuer,(string)($_SESSION['authenticated_ct400_id'] ?? '')]);
-    return (bool)$stmt->fetchColumn();
+    if (!$stmt->fetchColumn()) return false;
+    if ($method !== 'ct400_portal') return true;
+    if (($cfg['auto_login'] ?? false) !== true) return false;
+    $token = bm_identity_portal_cookie();
+    if ($token === '') return false;
+    $fingerprint = hash('sha256', $token);
+    $checked = (int)($_SESSION['portal_checked_at'] ?? 0);
+    $interval = max(15, min(300, (int)$cfg['portal_revalidate_seconds']));
+    if ($checked > 0 && $checked <= time() && time()-$checked < $interval
+        && hash_equals((string)($_SESSION['portal_cookie_fingerprint'] ?? ''), $fingerprint)) return true;
+    $account = bm_identity_try_portal_login($db, $transport);
+    if (!$account || (int)$account['id'] !== (int)($_SESSION['user_id'] ?? 0)
+        || !hash_equals((string)$_SESSION['authenticated_ct400_id'], $account['_ct400_id'])
+        || !hash_equals($issuer, $account['_ct400_issuer'])) return false;
+    $_SESSION['portal_cookie_fingerprint'] = $fingerprint;
+    $_SESSION['portal_checked_at'] = time();
+    return true;
 }
 
 function bm_identity_snapshot(PDO $db, int $userId): array {
@@ -300,8 +388,9 @@ function bm_identity_record_audit(PDO $db, int $auditId, ?int $actorId, string $
     $actor = $actorId ? bm_identity_snapshot($db,$actorId) : [];
     $ownerId ??= bm_identity_audit_owner($db,$action,$details);
     $owner = $ownerId ? bm_identity_snapshot($db,$ownerId) : [];
-    $method = ($_SESSION['authentication_method'] ?? 'local') === 'ct400' ? 'ct400' : ($actorId ? 'local' : 'system');
-    $authenticatedId = $method === 'ct400' ? (string)($_SESSION['authenticated_ct400_id'] ?? '') : null;
+    $source = $_SESSION['authentication_method'] ?? 'local';
+    $method = in_array($source, ['ct400','ct400_portal'], true) ? $source : ($actorId ? 'local' : 'system');
+    $authenticatedId = in_array($method, ['ct400','ct400_portal'], true) ? (string)($_SESSION['authenticated_ct400_id'] ?? '') : null;
     $stmt=$db->prepare('INSERT INTO audit_identity(audit_id,actor_user_id,actor_username,actor_display_name,owner_user_id,owner_username,owner_display_name,actor_ct400_id,actor_ct400_issuer,owner_ct400_id,owner_ct400_issuer,authentication_method,authenticated_ct400_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $stmt->execute([$auditId,$actorId,$actor['username']??null,$actor['display_name']??null,$ownerId,$owner['username']??null,$owner['display_name']??null,$actor['ct400_id']??null,$actor['ct400_issuer']??null,$owner['ct400_id']??null,$owner['ct400_issuer']??null,$method,$authenticatedId]);
 }
@@ -315,7 +404,7 @@ function bm_identity_render_audit(PDO $db): void {
         $method=$r['authentication_method'] ?? 'Legacy record';
         echo '<tr><td>'.h($r['created_at']).'</td><td>'.h($name).'<br><small>'.h($r['actor_username']).'</small></td><td>'.h($r['owner_display_name']).'<br><small>'.h($r['owner_username']).'</small></td><td><small>'.h($r['actor_ct400_id'] ?: 'No link captured').'</small>';
         if (!empty($r['owner_ct400_id'])) echo '<br><small>Owner: '.h($r['owner_ct400_id']).'</small>';
-        echo '</td><td>'.h($method === 'ct400' ? 'CT400 verified' : ($method === 'local' ? 'Local password' : $method)).'</td><td>'.h($r['action']).'<br><small>'.h($r['details']).'</small></td><td>'.h($r['ip_address']).'</td></tr>';
+        echo '</td><td>'.h($method === 'ct400_portal' ? 'Work portal verified' : ($method === 'ct400' ? 'CT400 verified' : ($method === 'local' ? 'Local password' : $method))).'</td><td>'.h($r['action']).'<br><small>'.h($r['details']).'</small></td><td>'.h($r['ip_address']).'</td></tr>';
     }
     echo '</table></div></div>'; layout_end();
 }

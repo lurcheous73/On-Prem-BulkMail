@@ -16,7 +16,7 @@ This repository builds on the application deployed on 20 October 2026, including
 - Idempotent IMAP Sent filing that cannot resend a campaign.
 - SMSGate SMS and Baileys WhatsApp plain-text/link messages, with contact groups and pasted UK mobile numbers.
 - Explicit messaging previews, account-specific channel permissions, opt-outs, delivery history and reconciliation without blind retries.
-- Verified CT400 identity links and immutable actor/owner audit snapshots; existing local accounts and passwords are retained.
+- Verified CT400 identity links, optional automatic work portal sign-in and immutable actor/owner audit snapshots; existing local accounts and passwords are retained.
 
 ## Source layout
 
@@ -44,4 +44,4 @@ Run python3 tests/run-http-regressions.py with PHP SQLite/mbstring/XML, Python, 
 
 The portable repository suite was rerun for this synchronization: 31 contact/page checks and 40 full-mailer checks passed, together with the existing-database installer guard, schema restoration, font hashes and syntax checks.
 
-The messaging upgrade adds 81 queue/adapter checks, 73 identity checks, 20 Node gateway checks, 26 messaging HTTP checks, 6 private configuration checks and 31 isolated upgrade/rollback checks. These use synthetic records and mocked providers or loopback fixtures. They do not send live SMS/WhatsApp messages or prove the customer's handset, pairing and CT400 credentials are configured. See the [upgrade guide](docs/MESSAGING-UPGRADE.md#verification-and-remaining-live-checks) and the final release record under tests/verification.
+The messaging upgrade adds 81 queue/adapter checks, 73 identity checks, 20 Node gateway checks, 26 messaging HTTP checks, 6 private configuration checks and 37 isolated upgrade/rollback checks. The work portal extension adds 51 portal-identity checks, 26 HTTPS browser-flow checks and 23 one-use broker checks. These use synthetic records and mocked providers or loopback fixtures. They do not send live SMS/WhatsApp messages or prove the customer's handset, pairing and CT400 credentials are configured. See the [upgrade guide](docs/MESSAGING-UPGRADE.md#verification-and-remaining-live-checks) and the final release records under tests/verification.

@@ -158,6 +158,7 @@ with tempfile.TemporaryDirectory(prefix="bulkmail-upgrade-") as temp:
     poison = base / "altering-migration-fixture"
     poison.mkdir()
     shutil.copy2(RELEASE / "app/bulkmail-identity.php", poison / "bulkmail-identity.php")
+    shutil.copy2(RELEASE / "app/bulkmail-portal-sso.php", poison / "bulkmail-portal-sso.php")
     poison.joinpath("bulkmail-messaging-core.php").write_text("<?php function bm_message_schema(PDO $db):void {$db->exec(\"UPDATE users SET display_name='unexpected mutation'\");}")
     result = subprocess.run(["php", str(MIGRATE), "--db=" + str(rejected_db), "--app-dir=" + str(poison)], text=True, capture_output=True)
     check("Migration detects any existing user-row mutation and rolls back", result.returncode != 0 and "user-preservation-check" in result.stderr and users(rejected_db) == rejected_users)

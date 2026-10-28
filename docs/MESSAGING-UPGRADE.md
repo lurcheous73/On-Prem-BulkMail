@@ -292,7 +292,10 @@ mock providers or loopback fixture services. The current suites comprise:
 | [Existing-install upgrade / rollback](../tests/test-upgrade.py) | 37 |
 | [New messaging HTTP workflows](../tests/messaging-http.py) | 26 |
 | [Existing contact and full-mailer regressions](../tests/run-http-regressions.py) | 71 (31 + 40) |
-| **Total** | **314** |
+| [Work portal identity](../tests/identity-portal.php) | 51 |
+| [Work portal HTTPS workflows](../tests/identity-portal-http.py) | 26 |
+| [One-use meeting identity exchange](../tests/test-portal-sso.php) | 23 |
+| **Total** | **414** |
 
 On 28 October 2026, application revision
 `c31ec6d37623984b0baaf73394505b510e51b3a2` passed an isolated CT301 deployment
@@ -303,10 +306,13 @@ the staging server's PHP 8.2.33 runtime. The public HTTPS login was checked afte
 the live deployment. CT301 was returned to its stopped state with its network
 disconnected.
 
-The new services are installed and healthy. SMS, WhatsApp connection/delivery,
-and CT400 integration remain disabled pending handset setup, intended account
-linking and authorized live delivery tests. No real messages were sent by the
-build or deployment. See the [deployment verification record](../tests/verification/messaging-upgrade-20261028.json).
+The first deployment installed the new services with SMS, WhatsApp
+connection/delivery and CT400 integration disabled. The subsequent work portal
+extension adds automatic verified sign-in and the narrowly configured meeting
+identity exchange described in the [CT400 account guide](CT400-ACCOUNTS.md).
+See the [initial deployment verification record](../tests/verification/messaging-upgrade-20261028.json)
+and the subsequent release records for the actual enabled state. No real
+messages are sent by the build or deployment tests.
 
 Run the PHP/Python suites from the repository root:
 
@@ -314,6 +320,9 @@ Run the PHP/Python suites from the repository root:
 php tests/test-messaging-core.php
 php tests/test-identity.php
 python3 tests/identity-http.py
+php tests/identity-portal.php
+python3 tests/identity-portal-http.py
+php tests/test-portal-sso.php
 python3 tests/messaging-http.py
 python3 tests/run-http-regressions.py
 ```
