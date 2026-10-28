@@ -5,10 +5,14 @@ The browser carries only a short-lived code; the portal cookie stays on work.
 """
 import hashlib
 import hmac
+import http.client
+import ipaddress
 import json
 import os
 import re
 import secrets
+import socket
+import ssl
 import time
 import urllib.error
 import urllib.parse
@@ -72,6 +76,56 @@ def _set_cookie(name, value, seconds):
     return f"{name}={value}; Path={path}; Max-Age={seconds}; HttpOnly; Secure; SameSite=Lax"
 
 
+def _connect_address(value):
+    if not isinstance(value, str) or "%" in value:
+        raise ValueError()
+    if value == "":
+        return ""
+    try:
+        return str(ipaddress.ip_address(value))
+    except ValueError:
+        raise ValueError() from None
+
+
+class PinnedBrokerHTTPSConnection(http.client.HTTPSConnection):
+    """Connect to a configured numeric address; authenticate the original host."""
+
+    def __init__(self, host, port, address):
+        self.connect_address = ipaddress.ip_address(_connect_address(address))
+        super().__init__(host, port, timeout=8, context=ssl.create_default_context())
+
+    def connect(self):
+        # A numeric socket avoids hostname resolution and environment proxies.
+        # TLS still verifies the original broker name with the system trust store.
+        raw = socket.socket(socket.AF_INET6 if self.connect_address.version == 6 else socket.AF_INET,
+                            socket.SOCK_STREAM)
+        raw.settimeout(self.timeout)
+        try:
+            raw.connect((str(self.connect_address), self.port))
+            self.sock = self._context.wrap_socket(raw, server_hostname=self.host)
+        except BaseException:
+            raw.close()
+            raise
+
+
+def _pinned_exchange(payload, address):
+    origin = urllib.parse.urlsplit(BROKER_ORIGIN)
+    if origin.scheme != "https" or not origin.hostname:
+        raise SSOError("broker_unavailable")
+    connection = PinnedBrokerHTTPSConnection(origin.hostname, origin.port or 443, address)
+    try:
+        connection.request("POST", "/?page=portal_sso_token", body=payload,
+                           headers={"Content-Type": "application/json", "Accept": "application/json"})
+        response = connection.getresponse()
+        if 300 <= response.status < 400:
+            raise SSOError("broker_redirect_rejected")
+        if response.status != 200:
+            raise SSOError("broker_unavailable")
+        return response.read(16385)
+    finally:
+        connection.close()
+
+
 def load_config(path, original_hosts):
     try:
         raw = Path(path).read_bytes()
@@ -87,6 +141,7 @@ def load_config(path, original_hosts):
             raise ValueError()
         if cfg.get("client_id", "meet-host") != "meet-host":
             raise ValueError()
+        connect_address = _connect_address(cfg.get("broker_connect_address", ""))
         additions = cfg.get("additional_hosts", {})
         subjects = cfg.get("subjects", {})
         if not isinstance(additions, dict) or not isinstance(subjects, dict) or not subjects:
@@ -117,7 +172,8 @@ def load_config(path, original_hosts):
             if name in clean_subjects.values():
                 raise ValueError()
             clean_subjects[subject] = name
-        return {"client_id": "meet-host", "client_secret": secret, "subjects": clean_subjects, "additional_hosts": clean_hosts}
+        return {"client_id": "meet-host", "client_secret": secret, "subjects": clean_subjects,
+                "additional_hosts": clean_hosts, "broker_connect_address": connect_address}
     except (OSError, ValueError, TypeError, UnicodeError):
         return None
 
@@ -126,21 +182,25 @@ def exchange_code(cfg, code, verifier):
     payload = json.dumps({"grant_type": "authorization_code", "client_id": cfg["client_id"],
                           "client_secret": cfg["client_secret"], "redirect_uri": CALLBACK,
                           "code": code, "code_verifier": verifier}).encode()
-    request = urllib.request.Request(BROKER_ORIGIN + "/?page=portal_sso_token", data=payload,
-                                     headers={"Content-Type": "application/json", "Accept": "application/json"}, method="POST")
-    opener = urllib.request.build_opener(NoRedirect())
     try:
-        with opener.open(request, timeout=8) as response:
-            if response.status != 200:
-                raise SSOError("broker_unavailable")
-            raw = response.read(16385)
-            if len(raw) > 16384:
-                raise SSOError("invalid_broker_response")
-            result = json.loads(raw)
-            if not isinstance(result, dict):
-                raise SSOError("invalid_broker_response")
-            return result
-    except (OSError, ValueError, urllib.error.URLError) as error:
+        address = _connect_address(cfg.get("broker_connect_address", ""))
+        if address:
+            raw = _pinned_exchange(payload, address)
+        else:
+            request = urllib.request.Request(BROKER_ORIGIN + "/?page=portal_sso_token", data=payload,
+                                             headers={"Content-Type": "application/json", "Accept": "application/json"}, method="POST")
+            opener = urllib.request.build_opener(NoRedirect())
+            with opener.open(request, timeout=8) as response:
+                if response.status != 200:
+                    raise SSOError("broker_unavailable")
+                raw = response.read(16385)
+        if len(raw) > 16384:
+            raise SSOError("invalid_broker_response")
+        result = json.loads(raw)
+        if not isinstance(result, dict):
+            raise SSOError("invalid_broker_response")
+        return result
+    except (OSError, ValueError, urllib.error.URLError, http.client.HTTPException):
         raise SSOError("broker_unavailable") from None
 
 

@@ -1,6 +1,7 @@
 {
   "enabled": false,
   "broker_origin": "https://work.the-grange.uk:9443",
+  "broker_connect_address": "",
   "issuer": "https://work.the-grange.uk",
   "redirect_uri": "https://meet.the-grange.uk/host/auth/ct400/callback",
   "client_id": "meet-host",

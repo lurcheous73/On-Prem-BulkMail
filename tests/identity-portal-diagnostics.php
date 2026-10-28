@@ -81,15 +81,31 @@ try {
     bm_identity_portal_diagnostic('api_result',200,0,37,'request_complete');$event=$read();
     diagnostic_check('Known request context and transport duration use fixed enums and numeric timing',
         $event['fetch_dest']==='iframe'&&$event['fetch_site']==='same-origin'&&$event['elapsed_ms']===37&&$event['stage']==='request_complete');
+    bm_identity_portal_diagnostic('api_result',200,0,52,'request_complete',
+        ['dns'=>0.0014,'connect'=>0.0066,'tls'=>0.023,'first_byte'=>0.045,'total'=>0.0519]);$event=$read();
+    diagnostic_check('API results report five cumulative cURL milestones rounded to milliseconds',
+        array_slice($event,-5,null,true)===['dns_ms'=>1,'connect_ms'=>7,'tls_ms'=>23,'first_byte_ms'=>45,'total_ms'=>52]);
+    bm_identity_portal_diagnostic('api_result',0,28,40040,'request_complete',
+        ['dns'=>-1,'connect'=>INF,'tls'=>NAN,'first_byte'=>999999999,'total'=>PHP_INT_MAX,$secret=>$privateMessage]);$event=$read();
+    diagnostic_check('Numeric timings reject non-finite values and clamp negative or excessive values',
+        array_slice($event,-5,null,true)===['dns_ms'=>0,'connect_ms'=>0,'tls_ms'=>0,'first_byte_ms'=>300000,'total_ms'=>300000]);
+    bm_identity_portal_diagnostic('api_result',0,28,40040,'request_complete',
+        ['dns'=>$secret,'connect'=>[$privateMessage],'tls'=>(object)['private'=>$secret],'first_byte'=>true,'total'=>null]);$event=$read();
+    diagnostic_check('Strings, arrays, objects, booleans and missing timings cannot enter diagnostic output',
+        array_slice($event,-5,null,true)===['dns_ms'=>0,'connect_ms'=>0,'tls_ms'=>0,'first_byte_ms'=>0,'total_ms'=>0]);
+    bm_identity_portal_diagnostic('api_request',0,0,null,'request_start',['dns'=>1,'url'=>$secret]);$event=$read();
+    diagnostic_check('Only API results add timing fields',!array_key_exists('dns_ms',$event));
     $_SERVER['HTTP_SEC_FETCH_DEST']=$secret;$_SERVER['HTTP_SEC_FETCH_SITE']=[$privateMessage];
     bm_identity_portal_diagnostic($secret,999999,-99,999999,$secret);$event=$read();
     diagnostic_check('Forged context headers, stages and timing cannot bypass the diagnostic allowlists',
         $event['fetch_dest']==='other'&&$event['fetch_site']==='other'&&$event['stage']==='identity_outcome'
         &&$event['elapsed_ms']===300000&&$event['http_status']===0&&$event['curl_code']===0);
     foreach ($events as $event) {
-        if (array_keys($event)!==['outcome','stage','cookie_present','cookie_valid_format','http_status','curl_code','elapsed_ms','fetch_dest','fetch_site']) throw new RuntimeException('Unexpected diagnostic field');
+        $fields=['outcome','stage','cookie_present','cookie_valid_format','http_status','curl_code','elapsed_ms','fetch_dest','fetch_site'];
+        if ($event['outcome']==='api_result') $fields=array_merge($fields,['dns_ms','connect_ms','tls_ms','first_byte_ms','total_ms']);
+        if (array_keys($event)!==$fields) throw new RuntimeException('Unexpected diagnostic field');
     }
-    diagnostic_check('Every diagnostic uses the same nine fixed fields',true);
+    diagnostic_check('Diagnostics use only the nine existing fields and five API-result timing fields',true);
     $output=file_get_contents($log);
     foreach ([$secret,hash('sha256',$secret),$privateMessage,$profile['id'],$profile['userName'],$profile['email'],$profile['displayName'],'private-invalid-id','private-header','private:password','portal.example.invalid'] as $private) {
         if (str_contains($output,$private)) throw new RuntimeException('Diagnostic included private fixture data');

@@ -8,6 +8,7 @@ function bm_integration_config(): array {
             'enabled' => false,
             'auto_login' => false,
             'base_url' => '',
+            'connect_address' => '',
             'directory_token' => '',
             'allow_http' => false,
             'session_ttl' => 3600,

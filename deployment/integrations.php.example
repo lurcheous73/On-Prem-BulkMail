@@ -7,6 +7,7 @@ return [
         'enabled' => false,
         'auto_login' => false, // Reuse this browser's verified work portal session.
         'base_url' => 'https://work.the-grange.uk',
+        'connect_address' => '', // Optional literal private IP; keep base_url for HTTPS identity/SNI.
         'directory_token' => '', // Optional; otherwise verify the operator's current portal cookie.
         'allow_http' => false,
         'portal_revalidate_seconds' => 60,

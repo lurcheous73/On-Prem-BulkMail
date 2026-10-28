@@ -11,7 +11,7 @@ final class BMIdentityException extends RuntimeException {
 
 /** Fixed operational classes only: never emit a credential, identity, body or exception message. */
 function bm_identity_portal_diagnostic(string $outcome, int $httpStatus = 0, int $curlCode = 0,
-    ?int $elapsedMs = null, string $stage = 'identity_outcome'): void {
+    ?int $elapsedMs = null, string $stage = 'identity_outcome', array $timings = []): void {
     $outcomes = ['disabled','auto_login_disabled','cookie_missing','cookie_invalid','issuer_invalid',
         'https_required','request_invalid','curl_unavailable','transport_failed','http_rejected',
         'json_invalid','response_invalid','profile_invalid_id','profile_inactive','profile_unactivated',
@@ -19,7 +19,7 @@ function bm_identity_portal_diagnostic(string $outcome, int $httpStatus = 0, int
         'api_request','api_result'];
     $dest = $_SERVER['HTTP_SEC_FETCH_DEST'] ?? null;
     $site = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? null;
-    error_log('BulkMail portal identity '.json_encode([
+    $record = [
         'outcome'=>in_array($outcome, $outcomes, true) ? $outcome : 'verification_failed',
         'stage'=>in_array($stage, ['identity_outcome','request_start','request_complete'], true) ? $stage : 'identity_outcome',
         'cookie_present'=>array_key_exists('asc_auth_key', $_COOKIE),
@@ -29,7 +29,17 @@ function bm_identity_portal_diagnostic(string $outcome, int $httpStatus = 0, int
         'elapsed_ms'=>$elapsedMs === null ? null : min(300000,max(0,$elapsedMs)),
         'fetch_dest'=>$dest === null ? 'missing' : (in_array($dest,['document','iframe','empty'],true) ? $dest : 'other'),
         'fetch_site'=>$site === null ? 'missing' : (in_array($site,['same-origin','same-site','cross-site','none'],true) ? $site : 'other'),
-    ], JSON_THROW_ON_ERROR));
+    ];
+    if ($outcome === 'api_result') {
+        // cURL milestones are cumulative from transfer start, not phase durations.
+        // Read only these numeric fields; never pass a whole curl_getinfo result.
+        foreach (['dns','connect','tls','first_byte','total'] as $name) {
+            $seconds = $timings[$name] ?? null;
+            $record[$name.'_ms'] = (is_int($seconds) || is_float($seconds)) && is_finite((float)$seconds)
+                ? (int)round(min(300.0,max(0.0,$seconds))*1000) : 0;
+        }
+    }
+    error_log('BulkMail portal identity '.json_encode($record, JSON_THROW_ON_ERROR));
 }
 
 function bm_identity_schema(PDO $db): void {
@@ -70,7 +80,7 @@ function bm_identity_schema(PDO $db): void {
 function bm_identity_config(): array {
     $all = function_exists('bm_integration_config') ? bm_integration_config() : [];
     return array_replace([
-        'enabled'=>false, 'auto_login'=>false, 'base_url'=>'', 'directory_token'=>'',
+        'enabled'=>false, 'auto_login'=>false, 'base_url'=>'', 'connect_address'=>'', 'directory_token'=>'',
         'allow_http'=>false, 'session_ttl'=>3600, 'portal_revalidate_seconds'=>60,
     ], is_array($all['identity'] ?? null) ? $all['identity'] : []);
 }
@@ -90,6 +100,27 @@ function bm_identity_issuer(array $config): string {
         .(isset($parts['port']) ? ':'.$parts['port'] : '').rtrim($parts['path'] ?? '', '/');
 }
 
+/** Optional operator-managed route; identity and TLS still use the configured issuer. */
+function bm_identity_resolve_rule(array $config, string $issuer): ?string {
+    $address = array_key_exists('connect_address', $config) ? $config['connect_address'] : '';
+    if ($address === '') return null;
+    if (!is_string($address) || filter_var($address, FILTER_VALIDATE_IP) === false) {
+        throw new BMIdentityException('CT400 private routing needs one literal IP address.', 'request_invalid');
+    }
+    $parts = parse_url($issuer);
+    $host = $parts['host'] ?? '';
+    $port = $parts['port'] ?? 443;
+    // libcurl 7.88 accepts IPv6 destination addresses, but an IPv6 URL host is
+    // not a supported RESOLVE rule key. Require the original DNS/IPv4 host.
+    if (($parts['scheme'] ?? '') !== 'https'
+        || filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false
+        || $port < 1 || $port > 65535) {
+        throw new BMIdentityException('CT400 private routing needs an HTTPS issuer with an exact hostname.', 'request_invalid');
+    }
+    if (str_contains($address, ':')) $address = '['.$address.']';
+    return $host.':'.$port.':'.$address;
+}
+
 /** Test transport is injected only by code; never selected by request parameters. */
 function bm_identity_request(array $config, string $method, string $path, ?array $body = null, string $token = '', ?callable $transport = null): array {
     $base = bm_identity_issuer($config);
@@ -97,6 +128,7 @@ function bm_identity_request(array $config, string $method, string $path, ?array
     if (!str_starts_with($path, '/api/2.0/') || preg_match('/[\r\n]/', $token)) {
         throw new BMIdentityException('Invalid CT400 request configuration.', 'request_invalid');
     }
+    $resolveRule = bm_identity_resolve_rule($config, $base);
     if ($transport) {
         $response = $transport($method, $path, $body, $token);
         if (!is_array($response)) throw new BMIdentityException('CT400 returned an invalid response.', 'response_invalid');
@@ -119,6 +151,12 @@ function bm_identity_request(array $config, string $method, string $path, ?array
             return strlen($chunk);
         },
     ]);
+    if ($resolveRule !== null) {
+        // Keep the original URL, Host and SNI. A configured direct route must
+        // not be replaced by an environment proxy that resolves the name itself.
+        curl_setopt($handle, CURLOPT_RESOLVE, [$resolveRule]);
+        curl_setopt($handle, CURLOPT_PROXY, '');
+    }
     if ($body !== null) curl_setopt($handle, CURLOPT_POSTFIELDS, json_encode($body, JSON_THROW_ON_ERROR));
     $portalSelf = $method === 'GET' && $path === '/api/2.0/people/@self.json';
     if ($portalSelf) bm_identity_portal_diagnostic('api_request',0,0,null,'request_start');
@@ -127,8 +165,15 @@ function bm_identity_request(array $config, string $method, string $path, ?array
     $status = (int)curl_getinfo($handle, CURLINFO_HTTP_CODE);
     $curlCode = curl_errno($handle);
     $elapsedMs = (int)round((hrtime(true)-$started)/1000000);
+    $timings = $portalSelf ? [
+        'dns'=>curl_getinfo($handle, CURLINFO_NAMELOOKUP_TIME),
+        'connect'=>curl_getinfo($handle, CURLINFO_CONNECT_TIME),
+        'tls'=>curl_getinfo($handle, CURLINFO_APPCONNECT_TIME),
+        'first_byte'=>curl_getinfo($handle, CURLINFO_STARTTRANSFER_TIME),
+        'total'=>curl_getinfo($handle, CURLINFO_TOTAL_TIME),
+    ] : [];
     curl_close($handle);
-    if ($portalSelf) bm_identity_portal_diagnostic('api_result',$status,$curlCode,$elapsedMs,'request_complete');
+    if ($portalSelf) bm_identity_portal_diagnostic('api_result',$status,$curlCode,$elapsedMs,'request_complete',$timings);
     if ($ok === false || $status<200 || $status>=300) {
         // Do not expose a remote body: it may echo credentials or tokens.
         throw new BMIdentityException('CT400 could not verify this request. Check the account and portal connection.',

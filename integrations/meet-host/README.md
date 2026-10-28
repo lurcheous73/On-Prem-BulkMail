@@ -42,6 +42,16 @@ in the BulkMail broker's `identity.sso_clients.meet-host` entry.
 - `subjects`: explicit CT400 GUID to existing or new meeting host username.
 - `additional_hosts`: additional usernames beginning `ct400-`, with verified
   `name` and `email`; each is always a standard host (`admin: false`).
+- `broker_connect_address`: optional literal IPv4 or IPv6 address for the
+  server-side code exchange. An omitted or empty value retains the original
+  urllib transport. A nonempty address connects directly on the broker's
+  existing port, 9443, while Host, TLS SNI and certificate verification continue
+  to use `work.the-grange.uk`. Browser authorization URLs, the callback, issuer,
+  state, PKCE and client-secret checks remain unchanged. The direct connection
+  does not resolve the broker hostname or use environment proxies. Invalid
+  addresses/types disable portal configuration instead of falling back to DNS;
+  local host authentication remains available. Confirm reachability and trusted
+  TLS from the meeting service before enrolling an address.
 - Existing host profile dictionaries cannot be replaced by configuration.
 - The existing `support` administrator cannot be mapped through this adapter.
 - Invalid/missing configuration disables portal sign-in while preserving local
@@ -100,8 +110,8 @@ over later activity merely to roll back this adapter.
 
 ## Verification
 
-`python3 integrations/meet-host/test_sso.py` runs 31 synthetic tests: 20 identity,
-configuration and flow checks, nine HTTP checks against the minimally patched
+`python3 integrations/meet-host/test_sso.py` runs 35 synthetic tests: 22 identity,
+configuration and flow checks, eleven HTTP checks against the minimally patched
 original handler, and two guarded patch checks. Set `MEET_BASELINE_PATH` to a private
 reviewed source copy (default `/tmp/grange-meet-canada-baseline.py`). The original
 customer application is not copied into this repository.
@@ -111,3 +121,12 @@ do not use customer passwords, connect to CT400 or send invitations/messages.
 The room-deletion regression verifies that a standard host cannot remove
 another owner's room, while the existing administrator can. A delayed work
 callback cannot overwrite a local sign-in completed while that flow was pending.
+
+`python3 integrations/meet-host/test_broker_connect.py` adds nine loopback-only
+tests with a disposable certificate authority and synthetic client values.
+They verify the original Host/SNI, issuer, public callback and exchange payload;
+absence of DNS/proxy use for a pin; rejection of trusted-but-wrong-name and
+untrusted certificates before the secret is sent; redirect rejection; bounded
+response size and fixed error messages; IPv6; invalid-address failure without
+fallback; and unchanged urllib behavior when the option is omitted or empty.
+No client secret, code or verifier is placed in a subprocess argument or log.

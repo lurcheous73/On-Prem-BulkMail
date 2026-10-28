@@ -14,6 +14,14 @@ owned by root and readable only by the application service group. Supply:
 - `enabled`: literal boolean `true` when the connection is ready. Default `false`.
 - `base_url`: the HTTPS origin of the existing ONLYOFFICE **Workspace** portal.
   This is not the separate DocSpace API or the mail-server container API.
+- `connect_address`: optional literal IPv4 or IPv6 address for a direct private
+  route, configured only in this root-managed file. Empty or omitted uses normal
+  DNS. Keep `base_url` as the original HTTPS hostname: the pin affects only the
+  connection address for that exact hostname and port, preserving the issuer,
+  HTTP Host, TLS SNI and certificate validation. A configured pin bypasses
+  environment proxies. Invalid settings fail closed; they do not fall back to
+  DNS. Enter IPv6 addresses without brackets. The issuer must have a DNS or IPv4
+  hostname, since the deployed libcurl does not support IPv6 URL hosts as pin keys.
 - `directory_token`: optional existing Workspace API token with access to read
   the intended people. When omitted, directory lookup validates the current
   browser's work portal cookie before using it for that request only.
@@ -29,6 +37,13 @@ owned by root and readable only by the application service group. Supply:
 
 No CT400 credentials are present in source. The application does not generate a
 portal administrator, alter CT400 settings, or copy directory passwords.
+
+The fixed `api_result` diagnostic includes `dns_ms`, `connect_ms`, `tls_ms`,
+`first_byte_ms` and `total_ms`. These are cumulative cURL milestones from request
+start, rounded to milliseconds and bounded to 0–300,000; zero can mean that a
+milestone was not reached. Compare them with the separate wall-clock `elapsed_ms`
+when investigating resolver cleanup delays. Logs contain no routing addresses,
+URLs, credentials or response bodies.
 
 ## Link Peter or another existing user
 

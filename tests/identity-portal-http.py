@@ -296,6 +296,14 @@ with tempfile.TemporaryDirectory(prefix="bulkmail-portal-http-") as temp:
               and any(e["outcome"] == "json_invalid" and e["http_status"] == 200 for e in events)
               and any(e["outcome"] == "response_invalid" and e["http_status"] == 200 for e in events)
               and any(e["outcome"] == "verified" for e in events))
+        timing_fields = {"dns_ms", "connect_ms", "tls_ms", "first_byte_ms", "total_ms"}
+        results = [e for e in events if e["outcome"] == "api_result"]
+        check("Real HTTPS API results contain exactly five bounded numeric cURL timing fields",
+              bool(results) and all(timing_fields <= e.keys()
+                  and all(type(e[key]) is int and 0 <= e[key] <= 300000 for key in timing_fields)
+                  for e in results)
+              and any(e["http_status"] == 200 and e["tls_ms"] > 0 and e["first_byte_ms"] >= e["tls_ms"] for e in results)
+              and all(not timing_fields.intersection(e) for e in events if e["outcome"] != "api_result"))
         check("Real HTTP identity diagnostics contain no credentials, hashes, profile identities or remote bodies",
               all(private not in "\n".join(identity_logs) for private in
                   ["fixture-portal-peter", "fixture-native+/=", "fixture-json-invalid", "fixture-envelope-invalid",

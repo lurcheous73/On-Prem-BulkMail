@@ -187,6 +187,32 @@ class ClientTests(unittest.TestCase):
             self.write_config(); self.assertIsNone(self.client.config())
             del self.cfg[key]
 
+    def test_private_broker_address_changes_no_browser_url_or_identity_mapping(self):
+        for address in ("", "192.168.1.26", "2001:db8::26"):
+            self.cfg["broker_connect_address"] = address
+            self.write_config()
+            self.assertEqual(self.client.config()["broker_connect_address"], address)
+            params, nonce, target, cookie = self.flow()
+            self.assertTrue(target.startswith(sso.BROKER_ORIGIN + "/?"))
+            self.assertEqual(params["redirect_uri"], [sso.CALLBACK])
+            self.assertNotIn("broker_connect_address", target + cookie)
+            self.finish(params, nonce)
+            for name, profile in self.original_hosts.items():
+                self.assertEqual(self.context["HOSTS"][name], profile)
+
+    def test_invalid_private_broker_address_disables_portal_without_fallback_or_account_changes(self):
+        for address in (None, False, 123, [], {}, "broker.example.invalid", " 192.168.1.26",
+                        "192.168.1.26:9443", "192.168.1.26,192.0.2.1", "[::1]", "fe80::1%eth0", "127.1"):
+            with self.subTest(address=address):
+                self.cfg["broker_connect_address"] = address
+                self.write_config()
+                self.assertIsNone(self.client.config())
+                with self.assertRaisesRegex(sso.SSOError, "work_login_unavailable"):
+                    self.client.begin()
+                self.assertTrue(self.client.valid_session(self.context["SESSIONS"]["existing-token"]))
+                self.assertEqual(self.context["HOSTS"], self.original_hosts)
+                self.assertEqual(self.calls, [])
+
     def test_pending_flows_bounded(self):
         self.client.pending = {str(i): {"expires": self.now + 10} for i in range(sso.MAX_PENDING)}
         with self.assertRaises(sso.SSOError): self.client.begin()

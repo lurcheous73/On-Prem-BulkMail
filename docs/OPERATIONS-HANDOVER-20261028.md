@@ -9,7 +9,8 @@ browser sign-in and the next ordinary user send remain to be observed.
 This handover records the evidence in the
 [identity activation record](../tests/verification/ct400-work-meet-20261028.json)
 and the [mail sync and TLS record](../tests/verification/mail-sync-tls-20261028.json),
-with the later [sign-in bootstrap investigation](../tests/verification/portal-bootstrap-20261028.json).
+with the later [sign-in bootstrap investigation](../tests/verification/portal-bootstrap-20261028.json)
+and [private sign-in routing record](../tests/verification/private-sso-routing-20261028.json).
 It contains no private configuration, staff identifiers, credentials or backup
 contents. The dated records carry the exact deployment revisions and checks.
 
@@ -46,8 +47,8 @@ diagnostic being reached. A controlled invalid-cookie API check completed with
 HTTP 401 in 49 milliseconds. These observations do not establish why the real
 browser abandoned its requests.
 
-The common PHP entry point starts its local session before database/schema work
-and before either broker handler. An isolated real PHP fixture reproduced the
+Before this correction, the common PHP entry point started its local session
+before database/schema work and either broker handler. An isolated real PHP fixture reproduced the
 authorization request waiting behind another request holding that same local
 session lock. The independently reviewed correction skips `session_start` for
 exactly `portal_sso_authorize` and `portal_sso_token`. Those handlers always exit
@@ -85,6 +86,56 @@ the fallback, but carried neither a Work cookie nor a local session cookie
 and its Meet callback had invalid state. Its browser identifier differed
 from the earlier Safari requests. These checks confirm transport and
 anonymous failure handling, not reuse of a signed-in staff session.
+
+### Measured API delay and private routing
+
+Later live requests supplied a correctly shaped Work cookie but spent
+40,036–40,041 milliseconds in the portal API call, ending with cURL error 28
+and no HTTP response. Session, database and schema startup took approximately
+one millisecond. Five such waits were observed, and an unsuccessful home
+request followed by the login-page redirect repeated the API call. Those failed
+calls did not appear in Work's upstream access log. This identifies the API
+transport wait as the measured bottleneck in these later requests; it does not
+retrospectively prove the cause of every earlier Safari 499 response.
+
+The live libcurl 7.88.1 uses asynchronous DNS. Its reviewed source can still
+wait for a blocked resolver thread while cleaning up a timed-out request,
+explaining how a four-second connection timeout and twelve-second total timeout
+can be exceeded. An intermittent resolver or route failure is consistent with
+the observations; a specific failing DNS server has not been established.
+
+**The BulkMail private-route deployment was verified at 21:55:35 UTC.** Its
+server-managed `identity.connect_address` setting selects the internal CT400
+address while retaining the original Work HTTPS hostname, issuer, Host header,
+SNI and certificate verification. Invalid routing settings fail closed and
+redirects remain disabled. The controlled post-installation API check completed
+in 34 milliseconds and the controlled PHP-FPM login-page probe in 58 milliseconds.
+The latter recorded a 26-millisecond API response, including a 21-millisecond
+TLS milestone, with the deliberately invalid cookie correctly rejected by
+HTTP 401. No HTTP or certificate validation was bypassed.
+Existing private settings and the reviewed source hashes were verified after
+installation. This is transport and fallback verification; successful reuse of
+a genuine staff browser session is still pending.
+
+The change passed 202 focused and existing checks, including real local HTTPS
+tests for IPv4 and IPv6, original Host/SNI preservation, certificate rejection,
+proxy bypass only for a configured direct route, and credential-safe numeric
+timing diagnostics. The independent reviewer reran 65 of those checks.
+
+**The Meet private-backchannel deployment was verified at 21:59:25 UTC.** It uses
+the existing private tunnel to BulkMail while retaining the original HTTPS
+hostname and default certificate trust. The host application itself is
+unchanged; only its adapter, optional private routing setting and host service
+were updated or restarted. The service is active and its login page returns
+HTTP 200. An actual service-user exchange authenticated the existing client
+and correctly rejected a deliberately invalid authorization code with HTTP 400
+`invalid_grant` in 369 milliseconds. The adapter passed independent source
+review, 35 existing SSO/handler cases and nine real HTTPS cases. No staff code or
+session was used, and a successful normal staff sign-in remains unverified.
+Through 22:00 UTC, no actual staff API-verification or broker-exchange success
+had been observed; these controlled timings do not measure staff browser latency.
+Exact scope, hashes and
+timings are in the [private routing verification record](../tests/verification/private-sso-routing-20261028.json).
 
 Account binding and sign-in behavior are documented in
 [CT400 accounts](CT400-ACCOUNTS.md) and the
