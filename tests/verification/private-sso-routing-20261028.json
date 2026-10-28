@@ -1,7 +1,7 @@
 {
   "date": "2026-10-28",
-  "status": "private_routes_deployed_controlled_transport_verified_staff_browser_verification_pending",
-  "scope": "Private server-to-server connection routes preserve the existing public HTTPS origins and all identity checks. No staff credential or session was read, copied or minted for verification.",
+  "status": "private_routes_deployed_staff_bulkmail_and_meet_sign_in_confirmed",
+  "scope": "Private server-to-server connection routes preserve the existing public HTTPS origins and all identity checks. The operator did not extract or fabricate staff credentials or sessions; final verification observed ordinary staff browser sign-ins.",
   "evidence_origin": "Live measurements and deployment results supplied by the parent operator; isolated source and regression checks performed locally.",
   "measured_slow_requests_before_private_route": {
     "observation_window_utc": "2026-10-28T21:39:00Z to 2026-10-28T21:42:59Z",
@@ -54,7 +54,7 @@
     ]
   },
   "bulkmail_deployment": {
-    "status": "deployed_and_controlled_transport_verified",
+    "status": "deployed_controlled_transport_and_staff_login_verified",
     "host": "CT300",
     "upstream_origin_unchanged": "https://work.the-grange.uk",
     "private_setting": "identity.connect_address",
@@ -65,7 +65,7 @@
     "rollback_backup": "/var/backups/grange-identity-private-route/20261028-64hn9k5n",
     "controlled_native_api_elapsed_ms": 34,
     "controlled_real_php_fpm_login_page_elapsed_ms": 58,
-    "fresh_staff_browser_success_observed": false,
+    "fresh_staff_browser_success_observed": true,
     "controlled_real_php_fpm_api_result": {
       "synthetic_invalid_cookie_only": true,
       "http_status": 401,
@@ -80,17 +80,18 @@
     },
     "verification_time_utc": "2026-10-28T21:55:35Z",
     "controlled_probe_time_utc": "2026-10-28T21:55:34Z",
-    "actual_staff_end_to_end_latency_measured": false
+    "actual_staff_end_to_end_latency_measured": false,
+    "staff_login_verified_time_utc": "2026-10-28T22:03:55Z"
   },
   "meet_backchannel": {
-    "status": "deployed_and_controlled_service_backchannel_verified",
+    "status": "deployed_controlled_backchannel_and_staff_exchange_verified",
     "source_host": "Canada CT320",
     "runtime_user": "www-data",
     "destination_origin_unchanged": "https://work.the-grange.uk:9443",
     "existing_private_tunnel_used": true,
     "trusted_https_preflight_elapsed_ms": 255,
     "application_adapter_deployed": true,
-    "fresh_staff_browser_success_observed": false,
+    "fresh_staff_browser_success_observed": true,
     "independent_review": {
       "decision": "GO",
       "source_and_test_hashes_verified": true,
@@ -127,7 +128,8 @@
       "real_staff_code_or_session_used": false
     },
     "verification_time_utc": "2026-10-28T21:59:25Z",
-    "verification_time_is_not_exact_service_apply_time": true
+    "verification_time_is_not_exact_service_apply_time": true,
+    "staff_login_verified_time_utc": "2026-10-28T22:03:59Z"
   },
   "preserved_invariants": {
     "public_browser_urls_and_callback_unchanged": true,
@@ -197,5 +199,60 @@
     "deployment/integrations.php.example": "6ce07c5cb365bf9cc5bdffc61e72b6ad9e5f42bc1ffdabed9fe7b2f148383685",
     "docs/CT400-ACCOUNTS.md": "61e73e1eae190744229f41c78703fb0b0f75e15b2429ff1fcb1bd0aa9af21271"
   },
-  "post_route_staff_observation": "Through 22:00 UTC, the new API-result timing was from the controlled invalid-cookie probe. No actual staff API-verified or broker-exchanged outcome had been observed; neither successful staff reuse nor end-to-end staff latency is claimed."
+  "post_route_staff_observation": "Earlier controlled checks through 22:00 UTC did not verify a staff session. Ordinary staff browser requests subsequently completed BulkMail login at 22:03:55 and Meet login at 22:03:59 UTC. The user then confirmed successful immediate access. Recorded milliseconds are server-side measurements, not a browser network timing measurement.",
+  "runtime_source_commit": "341654ffd619856cf8e2840de1107ffa29c5a696",
+  "staff_browser_confirmation": {
+    "status": "confirmed_by_live_authentication_events_and_user",
+    "bulkmail": {
+      "time_utc": "2026-10-28T22:03:55Z",
+      "work_api_http_status": 200,
+      "work_api_elapsed_ms": 39,
+      "home_http_status": 200,
+      "home_server_elapsed_ms": 53,
+      "audit_login_events": 1,
+      "audit_authentication_method": "ct400_portal",
+      "audit_checked_read_only": true,
+      "later_authenticated_pages": [
+        {
+          "time_utc": "2026-10-28T22:04:27Z",
+          "session_validated": true,
+          "server_elapsed_ms": 2
+        },
+        {
+          "time_utc": "2026-10-28T22:04:39Z",
+          "session_validated": true,
+          "server_elapsed_ms": 2
+        },
+        {
+          "time_utc": "2026-10-28T22:04:46Z",
+          "session_validated": true,
+          "server_elapsed_ms": 2
+        }
+      ]
+    },
+    "meet": {
+      "work_api_time_utc": "2026-10-28T22:03:58Z",
+      "work_api_http_status": 200,
+      "work_api_elapsed_ms": 31,
+      "broker_token_outcome": "exchanged",
+      "broker_token_http_status": 200,
+      "broker_token_server_elapsed_ms": 3,
+      "callback_time_utc": "2026-10-28T22:03:59Z",
+      "callback_outcome": "session_created",
+      "host_page_http_status": 200
+    },
+    "separate_anonymous_request": {
+      "time_utc": "2026-10-28T22:04:25Z",
+      "portal_cookie_present": false,
+      "outcome": "expected_login_fallback",
+      "not_conflated_with_confirmed_staff_flow": true
+    },
+    "user_confirmation": {
+      "approximate_time_utc": "2026-10-28T22:05Z",
+      "message": "straight in kev thanks"
+    },
+    "identities_or_credentials_printed": false,
+    "operator_extracted_or_fabricated_staff_credentials_or_sessions": false,
+    "server_timings_are_not_end_to_end_browser_latency": true
+  }
 }

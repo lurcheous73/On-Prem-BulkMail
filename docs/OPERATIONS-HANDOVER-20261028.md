@@ -3,8 +3,9 @@
 CT400 account links and the meeting host sign-in adapter are enabled. The two
 Grange MX certificates have been renewed and verified. **Peter's existing draft
 recovery is complete:** 21 exact sent duplicates are retained in a recovery
-folder, and all 48 Sent messages remain present. A successful normal staff
-browser sign-in and the next ordinary user send remain to be observed.
+folder, and all 48 Sent messages remain present. **Normal staff browser sign-in
+to BulkMail and Meet is now confirmed**, including the user's confirmation of
+immediate access. The next ordinary user send remains to be observed.
 
 This handover records the evidence in the
 [identity activation record](../tests/verification/ct400-work-meet-20261028.json)
@@ -33,11 +34,12 @@ preservation results are recorded in the
 Automatic work portal sign-in is deployed for linked identities. Live HTTPS and
 an anonymous browser verified the meeting redirect flow, the fallback when a
 work session is required, and the available work/local login controls. Positive
-identity exchanges were tested with isolated fixtures. The user subsequently
-reported that BulkMail and meeting sign-in were not working. **Successful reuse
-of an actual staff login has not yet been observed.** No real messages or
-invitations were sent by these checks. See the
-[recorded browser verification limit](../tests/verification/ct400-work-meet-20261028.json).
+identity exchanges were initially tested with isolated fixtures. The user then
+reported failures and slow access. After the corrections below, ordinary staff
+requests successfully signed into both applications, and the user confirmed
+"straight in kev thanks". No messages or invitations were sent by these checks.
+The [initial browser verification limit](../tests/verification/ct400-work-meet-20261028.json)
+is superseded by the final staff confirmation below.
 
 ### Request wait diagnosis and reviewed correction
 
@@ -74,9 +76,9 @@ found no binding to the browser's IP, User-Agent or device headers, and no
 dependency on another session cookie in the reviewed ONLYOFFICE cookie
 verification path. Separate optional portal IP
 restrictions are a configuration question, not evidence of such a token
-binding. The broker lock correction removes a demonstrated unnecessary wait;
-**a fresh staff browser attempt is still required to confirm the live result
-and the cause of the earlier 499 responses remains unconfirmed.**
+binding. The broker lock correction removes a demonstrated unnecessary wait.
+The cause of every earlier 499 response remains unconfirmed, although later
+staff sign-in succeeded after the private routing correction below.
 
 After deployment, a complete anonymous Meet redirect chain reached the login
 fallback with HTTP 200, and the live Meet service authenticated its HTTPS
@@ -114,8 +116,8 @@ The latter recorded a 26-millisecond API response, including a 21-millisecond
 TLS milestone, with the deliberately invalid cookie correctly rejected by
 HTTP 401. No HTTP or certificate validation was bypassed.
 Existing private settings and the reviewed source hashes were verified after
-installation. This is transport and fallback verification; successful reuse of
-a genuine staff browser session is still pending.
+installation. These initial checks verified transport and fallback handling;
+the later staff sign-in evidence is recorded below.
 
 The change passed 202 focused and existing checks, including real local HTTPS
 tests for IPv4 and IPv6, original Host/SNI preservation, certificate rejection,
@@ -131,11 +133,32 @@ HTTP 200. An actual service-user exchange authenticated the existing client
 and correctly rejected a deliberately invalid authorization code with HTTP 400
 `invalid_grant` in 369 milliseconds. The adapter passed independent source
 review, 35 existing SSO/handler cases and nine real HTTPS cases. No staff code or
-session was used, and a successful normal staff sign-in remains unverified.
-Through 22:00 UTC, no actual staff API-verification or broker-exchange success
-had been observed; these controlled timings do not measure staff browser latency.
+session was used in those controlled probes. Through 22:00 UTC, a staff flow had
+not yet been observed; the subsequent successful requests are recorded below.
 Exact scope, hashes and
 timings are in the [private routing verification record](../tests/verification/private-sso-routing-20261028.json).
+
+### Staff sign-in confirmed
+
+At **22:03:55 UTC**, a normal BulkMail browser request received HTTP 200 from
+Work's identity API in 39 milliseconds and loaded the authenticated home page
+with HTTP 200 in 53 milliseconds of server time. A read-only audit check found
+the corresponding `ct400_portal` login event. Subsequent authenticated pages at
+22:04:27, 22:04:39 and 22:04:46 validated the session and completed in two
+milliseconds of server time each.
+
+Meet then verified the Work identity at **22:03:58 UTC** with HTTP 200 in 31
+milliseconds. The broker exchanged the authorization code successfully with
+HTTP 200 in three milliseconds of server time; the callback recorded
+`session_created` at 22:03:59 and the host page returned HTTP 200. A separate
+anonymous request without a Work cookie followed the expected login fallback
+and was not treated as a failure of this staff flow.
+
+The user confirmed successful access at approximately 22:05 UTC: **"straight in
+kev thanks"**. This completes the previously pending staff-browser verification
+for both applications. The recorded milliseconds describe server processing;
+full browser network latency was not separately measured. No identities,
+credentials or session values were printed during verification.
 
 Account binding and sign-in behavior are documented in
 [CT400 accounts](CT400-ACCOUNTS.md) and the
