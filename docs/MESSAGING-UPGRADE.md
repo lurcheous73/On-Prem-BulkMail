@@ -289,9 +289,24 @@ mock providers or loopback fixture services. The current suites comprise:
 | [Identity unit](../tests/test-identity.php) and [HTTP workflows](../tests/identity-http.py) | 73 (53 + 20) |
 | [Baileys gateway](../services/whatsapp-gateway/test/) | 20 |
 | [Private configuration](../tests/test-integration-config.php) | 6 |
-| [Existing-install upgrade / rollback](../tests/test-upgrade.py) | 31 |
+| [Existing-install upgrade / rollback](../tests/test-upgrade.py) | 37 |
 | [New messaging HTTP workflows](../tests/messaging-http.py) | 26 |
 | [Existing contact and full-mailer regressions](../tests/run-http-regressions.py) | 71 (31 + 40) |
+| **Total** | **314** |
+
+On 28 October 2026, application revision
+`c31ec6d37623984b0baaf73394505b510e51b3a2` passed an isolated CT301 deployment
+rehearsal and was installed on CT300. Both environments passed all 25 deployment
+checks, including exact preservation of all five existing accounts and all
+legacy database tables. The identity and messaging HTTP suites also passed on
+the staging server's PHP 8.2.33 runtime. The public HTTPS login was checked after
+the live deployment. CT301 was returned to its stopped state with its network
+disconnected.
+
+The new services are installed and healthy. SMS, WhatsApp connection/delivery,
+and CT400 integration remain disabled pending handset setup, intended account
+linking and authorized live delivery tests. No real messages were sent by the
+build or deployment. See the [deployment verification record](../tests/verification/messaging-upgrade-20261028.json).
 
 Run the PHP/Python suites from the repository root:
 
